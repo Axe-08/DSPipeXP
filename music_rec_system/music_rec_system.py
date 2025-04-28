@@ -1,235 +1,372 @@
 import pandas as pd
 import numpy as np
 import librosa
+import os
+import ast
+import soundfile as sf
 from sklearn.preprocessing import StandardScaler
 from sklearn.neighbors import NearestNeighbors
-from sklearn.cluster import KMeans
 from sklearn.metrics.pairwise import cosine_similarity
+from pathlib import Path
+import subprocess
+import tempfile
 
-def extract_features(file_path):
-    y, sr = librosa.load(file_path, sr=None)
-    features = {}
-    
-    features['duration_ms'] = len(y) / sr * 1000
-    
-    tempo, _ = librosa.beat.beat_track(y = y, sr = sr)
-    features['tempo'] = tempo
-    features['tempo'] = sum([f for f in features['tempo']]) / len([f for f in features['tempo']])
-    rms = librosa.feature.rms(y=y)[0]
-    features['energy'] = np.mean(rms) * 10
-    
-    # Spectral centroid for brightness/energy
-    spectral_centroids = librosa.feature.spectral_centroid(y=y, sr=sr)[0]
-    features['acousticness'] = 1.0 - (np.mean(spectral_centroids) / (sr/2))  # Inverse of brightness
-
-    # Chroma features for key detection
-    chroma = librosa.feature.chroma_stft(y=y, sr=sr)
-    features['key'] = np.argmax(np.mean(chroma, axis=1))
+class MusicRecommender:
+    def __init__(self, dataset_path):
+        """Initialize the music recommendation system."""
+        self.dataset_path = dataset_path
+        self.df = pd.read_csv(dataset_path, low_memory=False)
         
-    # Spectral contrast for energy distribution
-    contrast = librosa.feature.spectral_contrast(y=y, sr=sr)
-    features['danceability'] = np.mean(contrast) * 0.5 + 0.5  # Scale to 0-1
+        self.df = self.df.drop_duplicates(subset=['track_name', 'artists'])
         
-    # MFCC for speech content
-    mfccs = librosa.feature.mfcc(y=y, sr=sr)
-    features['speechiness'] = np.mean(np.abs(mfccs[1:5])) * 0.3  # Scale to match dataset
+        self.features = [
+            'danceability', 'energy', 'loudness', 'speechiness', 
+            'acousticness', 'instrumentalness', 'liveness', 
+            'valence', 'tempo'
+        ]
         
-    # Zero crossing rate for noisiness
-    zcr = librosa.feature.zero_crossing_rate(y)
-    features['instrumentalness'] = 1.0 - min(1.0, np.mean(zcr) * 10)  # Inverse of ZCR, scaled
+        for feature in self.features:
+            self.df[feature] = self.df[feature].apply(self._convert_to_float)
         
-    # Spectral flatness for liveness approximation
-    flatness = librosa.feature.spectral_flatness(y=y)
-    features['liveness'] = np.mean(flatness) * 5  # Scale to match dataset
-
-    # Approximating valence based 
-    features['valence'] = 0.5  # 
-    if np.mean(rms) > 0.1:  # If 
-        features['valence'] = min(1.0, np.mean(rms) * 5)  # Higher energy often correlates with positive valence
+        self.scaler = StandardScaler()
+        self.scaled_features = self.scaler.fit_transform(self.df[self.features])
         
-    features['loudness'] = min(0, -60 + np.mean(rms) * 100)  # Scale to negative dB values
+        self.knn_model = self._build_knn_model()
+    
+    def _convert_to_float(self, value):
+        """Convert string-formatted lists or other value types to float."""
+        if isinstance(value, str):
+            try:
+                if value.startswith('[') and value.endswith(']'):
+                    parsed = ast.literal_eval(value)
+                    if isinstance(parsed, list):
+                        return float(parsed[0])
+                
+                return float(value)
+            except (ValueError, SyntaxError):
+                return 0.0
+        return float(value)
+    
+    def _build_knn_model(self, n_neighbors=10):
+        """Build the K-nearest neighbors model."""
+        knn_model = NearestNeighbors(
+            n_neighbors=n_neighbors, 
+            algorithm='auto', 
+            metric='euclidean'
+        )
+        knn_model.fit(self.scaled_features)
+        return knn_model
+    
+    def _load_audio(self, file_path):
+        """
+        Load audio file with proper handling for different formats.
+        Convert unsupported formats to wav using ffmpeg when necessary.
+        """
+        file_path = Path(file_path)
         
-    features['mode'] = 1 if np.mean(chroma[0]) > np.mean(chroma[3]) else 0  # Very rough approximation
+        # Extensions that soundfile can handle directly
+        sf_compatible = ['.wav', '.flac', '.aiff', '.ogg']
         
-    # Time signature (default to 4)
-    features['time_signature'] = 4
-
-    return features
-
-def knn(scaled_features, n_neighbours = 5):
-    knn_model = NearestNeighbors(n_neighbors = n_neighbours, algorithm = 'auto', metric = 'euclidean')
-    knn_model.fit(scaled_features)
-    
-    return knn_model
-    
-def kmeans(scaled_features, n_clusters=10):
-    kmeans_model = KMeans(n_clusters=n_clusters, random_state=42)
-    kmeans_model.fit(scaled_features)
-    
-    return kmeans_model
-
-def knn_recommend(df, song_features, features, scaled_features, n_recommendations=5):
-    feature_values = []
-    for f in features:
-        value = song_features.get(f, 0)
-        if hasattr(value, '__len__') and not isinstance(value, (str, bytes)):
-            value = float(np.mean(value)) 
-        feature_values.append(value)
-    
-    feature_df = pd.DataFrame([feature_values], columns=features)
-    scaled_song_features = scaler.transform(feature_df)
-    
-    similarity_scores = cosine_similarity(scaled_song_features, scaled_features)[0]
-    
-    similarity_df = pd.DataFrame({
-        'index': range(len(similarity_scores)),
-        'similarity_score': similarity_scores
-    })
-    
-    similarity_df = similarity_df.sort_values('similarity_score', ascending=False)
-    
-    start_idx = 1 if similarity_df.iloc[0]['similarity_score'] > 0.999 else 0
-    top_indices = similarity_df.iloc[start_idx:start_idx+n_recommendations]['index'].values
-    
-    recommendations = df.iloc[top_indices].copy()
-    recommendations['similarity_score'] = similarity_scores[top_indices]
-    
-    final_recommendations = recommendations[['track_name', 'artists', 'track_genre', 'popularity', 'similarity_score']]
-    
-    return final_recommendations, similarity_scores[top_indices]
-
-def kmeans_recommend(df, song_features, features, scaled_features, n_recommendations=5, n_clusters=20):
-    feature_values = []
-    for f in features:
-        value = song_features.get(f, 0)
-        if hasattr(value, '__len__') and not isinstance(value, (str, bytes)):
-            value = float(np.mean(value))
-        feature_values.append(value)
-    
-    feature_df = pd.DataFrame([feature_values], columns=features)
-    scaled_song_features = scaler.transform(feature_df)
-    
-    kmeans_model = KMeans(n_clusters=n_clusters, random_state=42)
-    clusters = kmeans_model.fit_predict(scaled_features)
-    
-    temp_df = df.copy()
-    temp_df['cluster'] = clusters
-    
-    cluster = kmeans_model.predict(scaled_song_features)[0]
-    
-    cluster_songs = temp_df[temp_df['cluster'] == cluster].copy()
-    
-    if len(cluster_songs) <= 1:  
-        print(f"Cluster {cluster} has too few songs. Finding nearby clusters...")
+        if file_path.suffix.lower() in sf_compatible:
+            try:
+                # Try using soundfile directly
+                y, sr = sf.read(file_path)
+                # Convert to float32 and mono if needed
+                if y.ndim > 1:
+                    y = y.mean(axis=1)
+                return y.astype(np.float32), sr
+            except Exception as e:
+                print(f"SoundFile failed: {e}, falling back to ffmpeg conversion")
         
-        cluster_distances = []
-        for i, center in enumerate(kmeans_model.cluster_centers_):
-            if i != cluster:  
-                dist = np.linalg.norm(scaled_song_features - center.reshape(1, -1))
-                cluster_distances.append((i, dist))
+        # For non-compatible formats, convert to temp WAV using ffmpeg
+        with tempfile.NamedTemporaryFile(suffix='.wav', delete=False) as temp_file:
+            temp_path = temp_file.name
         
-        cluster_distances.sort(key=lambda x: x[1])
-        nearest_cluster = cluster_distances[0][0]
+        try:
+            # Use ffmpeg to convert to WAV
+            print(f"Converting {file_path} to temporary WAV using ffmpeg")
+            subprocess.run(
+                ['ffmpeg', '-i', str(file_path), '-ar', '44100', '-ac', '1', '-y', temp_path],
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+                check=True
+            )
+            
+            # Read the converted file
+            y, sr = sf.read(temp_path)
+            return y.astype(np.float32), sr
         
-        print(f"Using nearest cluster {nearest_cluster} instead")
-        cluster_songs = temp_df[temp_df['cluster'] == nearest_cluster].copy()
+        except Exception as e:
+            print(f"FFmpeg conversion failed: {e}, falling back to librosa's default loader")
+            # If all else fails, use librosa's default loader (which will use audioread)
+            y, sr = librosa.load(file_path, sr=None)
+            return y, sr
+        
+        finally:
+            # Clean up temp file if it exists
+            if os.path.exists(temp_path):
+                os.unlink(temp_path)
     
-    similarities = cosine_similarity(scaled_song_features, 
-                                    scaled_features[cluster_songs.index])[0]
+    def extract_features(self, file_path):
+        """Extract audio features from a music file using librosa."""
+        try:
+            # Use our custom audio loading function
+            y, sr = self._load_audio(file_path)
+            features = {}
+            
+            # Basic features
+            features['duration_ms'] = len(y) / sr * 1000
+            
+            # Tempo and rhythm features
+            tempo, beat_frames = librosa.beat.beat_track(y=y, sr=sr)
+            features['tempo'] = tempo
+            
+            # Energy and loudness
+            rms = librosa.feature.rms(y=y)[0]
+            features['energy'] = np.mean(rms) * 10
+            features['loudness'] = min(0, -60 + np.mean(rms) * 100)  # Scale to negative dB values
+            
+            # Spectral features
+            spectral_centroids = librosa.feature.spectral_centroid(y=y, sr=sr)[0]
+            spectral_bandwidth = librosa.feature.spectral_bandwidth(y=y, sr=sr)[0]
+            spectral_contrast = librosa.feature.spectral_contrast(y=y, sr=sr)
+            
+            # Derived features
+            features['acousticness'] = 1.0 - (np.mean(spectral_centroids) / (sr/2))
+            features['danceability'] = np.mean(spectral_contrast) * 0.5 + 0.5
+            
+            # Harmonics
+            chroma = librosa.feature.chroma_stft(y=y, sr=sr)
+            features['key'] = np.argmax(np.mean(chroma, axis=1))
+            features['mode'] = 1 if np.mean(chroma[0]) > np.mean(chroma[3]) else 0
+            
+            # Voice and instrument detection
+            mfccs = librosa.feature.mfcc(y=y, sr=sr, n_mfcc=13)
+            features['speechiness'] = np.mean(np.abs(mfccs[1:5])) * 0.3
+            
+            # Zero crossing rate for noisiness
+            zcr = librosa.feature.zero_crossing_rate(y)
+            features['instrumentalness'] = 1.0 - min(1.0, np.mean(zcr) * 10)
+            
+            # Live performance detection
+            flatness = librosa.feature.spectral_flatness(y=y)
+            features['liveness'] = np.mean(flatness) * 5
+            
+            # Emotional content
+            features['valence'] = 0.5  # Default value
+            if np.mean(rms) > 0.1:
+                features['valence'] = min(1.0, np.mean(rms) * 5)
+            
+            # Time signature (default to 4)
+            features['time_signature'] = 4
+            
+            return features
+            
+        except Exception as e:
+            print(f"Error extracting features from {file_path}: {e}")
+            # Return default features in case of error
+            return {feature: 0 for feature in self.features}
     
-    cluster_songs['similarity_score'] = similarities
+    def _prepare_song_features(self, song_features):
+        """Prepare and scale song features for recommendation."""
+        feature_values = []
+        for feature in self.features:
+            value = song_features.get(feature, 0)
+            # Handle array-like features by taking their mean
+            if hasattr(value, '__len__') and not isinstance(value, (str, bytes)):
+                value = float(np.mean(value))
+            feature_values.append(value)
+        
+        feature_array = np.array(feature_values).reshape(1, -1)
+        scaled_song_features = self.scaler.transform(feature_array)
+        return scaled_song_features
     
-    cluster_songs = cluster_songs[cluster_songs['similarity_score'] < 0.999]
+    def recommend_songs(self, song_path, n_recommendations=5, method='hybrid'):
+        """
+        Recommend songs based on the input song.
+        
+        Parameters:
+        - song_path: Path to the song file
+        - n_recommendations: Number of songs to recommend
+        - method: 'knn', 'cosine', or 'hybrid' (default)
+        
+        Returns:
+        - DataFrame with recommended songs
+        """
+        # Extract features from the input song
+        song_features = self.extract_features(song_path)
+        scaled_song_features = self._prepare_song_features(song_features)
+        
+        if method == 'knn':
+            return self._knn_recommend(scaled_song_features, n_recommendations)
+        elif method == 'cosine':
+            return self._cosine_recommend(scaled_song_features, n_recommendations)
+        else:  # hybrid
+            return self._hybrid_recommend(scaled_song_features, n_recommendations)
     
-    recommendations = cluster_songs.sort_values('similarity_score', ascending=False)
-    recommendations = recommendations[['track_name', 'artists', 'track_genre', 'popularity', 'similarity_score']]
+    def _knn_recommend(self, scaled_song_features, n_recommendations):
+        """KNN-based song recommendation."""
+        distances, indices = self.knn_model.kneighbors(scaled_song_features)
+        
+        recommendations = self.df.iloc[indices[0]][
+            ['track_name', 'artists', 'track_genre', 'popularity']
+        ].copy()
+        
+        recommendations['distance'] = distances[0]
+        return recommendations
     
-    return recommendations.head(n_recommendations)
+    def _cosine_recommend(self, scaled_song_features, n_recommendations):
+        """Cosine similarity-based song recommendation."""
+        similarity_scores = cosine_similarity(scaled_song_features, self.scaled_features)[0]
+        top_indices = similarity_scores.argsort()[-n_recommendations:][::-1]
+        
+        recommendations = self.df.iloc[top_indices][
+            ['track_name', 'artists', 'track_genre', 'popularity']
+        ].copy()
+        
+        recommendations['similarity'] = similarity_scores[top_indices]
+        return recommendations
     
-def cosine_recommend(df, song_features, features, scaled_features, n_recommendations=5):
-    feature_values = []
-    for f in features:
-        value = song_features.get(f, 0)
-        if hasattr(value, '__len__') and not isinstance(value, (str, bytes)):
-            value = float(np.mean(value))
-        feature_values.append(value)
+    def _hybrid_recommend(self, scaled_song_features, n_recommendations):
+        """Hybrid recommendation combining KNN and cosine similarity."""
+        # Get twice as many recommendations from each method
+        knn_recs = self._knn_recommend(scaled_song_features, n_recommendations * 2)
+        cosine_recs = self._cosine_recommend(scaled_song_features, n_recommendations * 2)
+        
+        # Normalize distances and similarities for fair comparison
+        knn_recs['normalized_score'] = 1 - (knn_recs['distance'] / knn_recs['distance'].max())
+        cosine_recs['normalized_score'] = cosine_recs['similarity']
+        
+        # Combine recommendations
+        combined_recs = pd.concat([knn_recs, cosine_recs])
+        combined_recs = combined_recs.drop_duplicates(subset=['track_name', 'artists'])
+        
+        # Sort by normalized score and take top recommendations
+        return combined_recs.sort_values('normalized_score', ascending=False).head(n_recommendations)
     
-    feature_df = pd.DataFrame([feature_values], columns=features)
-    scaled_song_features = scaler.transform(feature_df)
-   
-    similarity_scores = cosine_similarity(scaled_song_features, scaled_features)[0]
-    
-    sorted_indices = np.argsort(-similarity_scores)
-    
-    if similarity_scores[sorted_indices[0]] > 0.999:
-        top_indices = sorted_indices[1:n_recommendations+1]
-    else:
-        top_indices = sorted_indices[:n_recommendations]
-    
-    recommendations = df.iloc[top_indices][['track_name', 'artists', 'track_genre', 'popularity']]
-    scores_to_return = similarity_scores[top_indices]
-    
-    recommendations = recommendations.copy()
-    recommendations['similarity_score'] = scores_to_return
-    recommendations = recommendations.sort_values('similarity_score', ascending=False)
-    
-    return recommendations, scores_to_return    
-    
-def add_to_dataset(df, audio_path, popularity = 50, explicit = False):
-    features = extract_features(audio_path)
-    
-    new_song = {
-        'Unnamed: 0': float(df.shape[0]),
-        'track_id': '2hETkH7cOfqmz3LqZDHZf6',
-        'artists': 'pcrc',
-        'album_name': 'beta',
-        'track_name': audio_path.strip('.mp3'),
-        'popularity': popularity,
-        'explicit': explicit,
-        'danceability': features['danceability'],
-        'energy': features['energy'],
-        'key': features['key'],
-        'loudness': features['loudness'],
-        'mode': features['mode'],
-        'speechiness': features['speechiness'],
-        'acousticness': features['acousticness'],
-        'instrumentalness': features['instrumentalness'],
-        'liveness': features['liveness'],
-        'valence': features['valence'],
-        'tempo': features['tempo'],
-        'duration_ms': features['duration_ms'],
-        'track_genre': 'indian-indie'   ,
-        'time_signature': features['time_signature']     
-    }    
-    
-    df = pd.concat([df, pd.DataFrame([new_song])], ignore_index = True)
-    df.to_csv('spotify_dataset/dataset.csv', index = False)
-    return df
+    def add_song_to_dataset(self, audio_path, metadata=None):
+        """
+        Add a new song to the dataset with extracted features.
+        
+        Parameters:
+        - audio_path: Path to the audio file
+        - metadata: Dictionary with song metadata (optional)
+        """
+        features = self.extract_features(audio_path)
+        
+        # Default metadata
+        if metadata is None:
+            metadata = {
+                'artists': Path(audio_path).stem,
+                'album_name': 'Unknown',
+                'track_name': Path(audio_path).stem,
+                'popularity': 50,
+                'explicit': False,
+                'track_genre': 'Unknown'
+            }
+        
+        # Create new song entry
+        new_song = {
+            'track_id': f"local_{len(self.df)}",
+            'artists': metadata.get('artists', 'Unknown'),
+            'album_name': metadata.get('album_name', 'Unknown'),
+            'track_name': metadata.get('track_name', Path(audio_path).stem),
+            'popularity': metadata.get('popularity', 50),
+            'explicit': metadata.get('explicit', False),
+            'danceability': features.get('danceability', 0),
+            'energy': features.get('energy', 0),
+            'key': features.get('key', 0),
+            'loudness': features.get('loudness', 0),
+            'mode': features.get('mode', 0),
+            'speechiness': features.get('speechiness', 0),
+            'acousticness': features.get('acousticness', 0),
+            'instrumentalness': features.get('instrumentalness', 0),
+            'liveness': features.get('liveness', 0),
+            'valence': features.get('valence', 0),
+            'tempo': features.get('tempo', 0),
+            'duration_ms': features.get('duration_ms', 0),
+            'track_genre': metadata.get('track_genre', 'Unknown'),
+            'time_signature': features.get('time_signature', 4)
+        }
+        
+        # Add to dataframe
+        self.df = pd.concat([self.df, pd.DataFrame([new_song])], ignore_index=True)
+        
+        # Update scaled features
+        self.scaled_features = self.scaler.fit_transform(self.df[self.features])
+        
+        # Update KNN model
+        self.knn_model = self._build_knn_model()
+        
+        # Save updated dataset
+        self.df.to_csv(self.dataset_path, index=False)
+        
+        return self.df.shape[0] - 1  # Return index of the newly added song
 
-dataset_path = 'spotify_dataset/dataset.csv'
-song_path = 'Foolmuse.mp3'
+    def search_song(self, query):
+        """
+        Search for a song in the dataset by name or artist.
+        
+        Parameters:
+        - query: Search query string
+        
+        Returns:
+        - DataFrame with matching songs
+        """
+        # Case-insensitive search in track_name and artists
+        mask = (
+            self.df['track_name'].str.lower().str.contains(query.lower()) | 
+            self.df['artists'].str.lower().str.contains(query.lower())
+        )
+        return self.df[mask][['track_name', 'artists', 'track_genre', 'popularity']]
+    
+    def recommend_from_index(self, index, n_recommendations=5, method='hybrid'):
+        """
+        Recommend songs based on a song index from the dataset.
+        
+        Parameters:
+        - index: Index of the song in the dataset
+        - n_recommendations: Number of songs to recommend
+        - method: 'knn', 'cosine', or 'hybrid' (default)
+        
+        Returns:
+        - DataFrame with recommended songs
+        """
+        # Get the features of the song at the given index
+        song_features = self.scaled_features[index].reshape(1, -1)
+        
+        if method == 'knn':
+            return self._knn_recommend(song_features, n_recommendations)
+        elif method == 'cosine':
+            return self._cosine_recommend(song_features, n_recommendations)
+        else:  # hybrid
+            return self._hybrid_recommend(song_features, n_recommendations)
 
-df = pd.read_csv(dataset_path)
-# df = add_to_dataset(df, song_path)  
 
-print(df.shape)
-
-features = ['danceability', 'energy', 'loudness', 'speechiness', 'acousticness', 'instrumentalness', 'liveness', 'valence', 'tempo']
-print((df.columns))
-
-scaler = StandardScaler()
-scaled_features = scaler.fit_transform(df[features])
-song_features = extract_features(song_path)
-
-knn_rec, dist = knn_recommend(df, song_features, features, scaled_features, 5)
-print("KNN Recommendations:")
-print(knn_rec)
-
-kmeans_rec = kmeans_recommend(df, song_features, features, scaled_features)
-print("\nK-means cluster recommendations:")
-print(kmeans_rec)
-
-cosine_rec, scores = cosine_recommend(df, song_features, features, scaled_features, 5)
-print("\nCosine similarity recommendations:")
-print(cosine_rec)
+# Example usage
+if __name__ == "__main__":
+    dataset_path = 'spotify_dataset/dataset.csv'
+    song_path = 'Foolmuse.mp3'
+    
+    # Initialize recommender
+    recommender = MusicRecommender(dataset_path)
+    
+    # Add song to dataset if not already present
+    search_results = recommender.search_song(Path(song_path).stem)
+    if search_results.empty:
+        recommender.add_song_to_dataset(song_path)
+    
+    # Get recommendations using hybrid method
+    recommendations = recommender.recommend_songs(song_path, n_recommendations=5, method='hybrid')
+    print("\nHybrid Recommendations:")
+    print(recommendations[['track_name', 'artists', 'track_genre', 'popularity', 'normalized_score']])
+    
+    # Alternative recommendation methods
+    knn_recs = recommender.recommend_songs(song_path, method='knn')
+    print("\nKNN Recommendations:")
+    print(knn_recs[['track_name', 'artists', 'track_genre', 'popularity', 'distance']])
+    
+    cosine_recs = recommender.recommend_songs(song_path, method='cosine')
+    print("\nCosine Similarity Recommendations:")
+    print(cosine_recs[['track_name', 'artists', 'track_genre', 'popularity', 'similarity']])
 
