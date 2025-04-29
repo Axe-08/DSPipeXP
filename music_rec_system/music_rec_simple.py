@@ -158,7 +158,7 @@ def add_to_dataset(df, audio_path, popularity = 50, explicit = False):
         'tempo': features['tempo'],
         'duration_ms': features['duration_ms'],
         'track_genre': 'indian-indie'   ,
-        'time_signature': features['time_signature']     
+        'time_signatue': features['time_signature']     
     }    
     
     df = pd.concat([df, pd.DataFrame([new_song])], ignore_index = True)
