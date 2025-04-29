@@ -86,30 +86,40 @@ def process_sentiment_batch(batch):
     return results
 
 def extract_sentiment_features(lyrics_list, cache_file='cache/sentiment_cache.pkl'):
-    """Extract sentiment features with caching"""
-    try:
+    """Extract sentiment features with caching (simplified version)"""
+    if os.path.exists(cache_file):
+        print("Loading sentiment features from cache...")
         with open(cache_file, 'rb') as f:
-            print("Loading sentiment features from cache...")
             return pickle.load(f)
-    except (FileNotFoundError, EOFError):
-        print("Extracting sentiment features...")
-        batch_size = 5000  # Increased batch size
-        batches = [lyrics_list[i:i + batch_size] for i in range(0, len(lyrics_list), batch_size)]
+    
+    print("Extracting sentiment features (this may take a while)...")
+    sid = SentimentIntensityAnalyzer()
+    results = []
+
+    # Simplified processing without batching/threading
+    for lyrics in tqdm(lyrics_list, desc="Processing sentiment"):
+        if not isinstance(lyrics, str) or not lyrics.strip():
+            results.append({
+                'polarity': 0, 'subjectivity': 0.5,
+                'compound': 0, 'neg': 0, 'neu': 1, 'pos': 0
+            })
+            continue
         
-        max_workers = min(8, os.cpu_count() or 4)  # Use more workers if available
-        with ThreadPoolExecutor(max_workers=max_workers) as executor:
-            results = list(tqdm(executor.map(process_sentiment_batch, batches), 
-                              total=len(batches), 
-                              desc="Processing sentiment"))
-        
-        flat_results = [item for batch in results for item in batch]
-        sentiment_df = pd.DataFrame(flat_results)
-        
-        # Save to cache
-        with open(cache_file, 'wb') as f:
-            pickle.dump(sentiment_df, f)
-        
-        return sentiment_df
+        blob = TextBlob(lyrics)
+        vader = sid.polarity_scores(lyrics)
+        results.append({
+            'polarity': blob.sentiment.polarity,
+            'subjectivity': blob.sentiment.subjectivity,
+            **vader
+        })
+
+    sentiment_df = pd.DataFrame(results)
+    
+    # Save to cache
+    with open(cache_file, 'wb') as f:
+        pickle.dump(sentiment_df, f)
+    
+    return sentiment_df
 
 def perform_topic_modeling(tokenized_lyrics, num_topics=5, cache_file='cache/lda_cache.pkl'):
     """Perform topic modeling with reduced topics and caching"""
