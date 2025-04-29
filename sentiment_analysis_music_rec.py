@@ -19,7 +19,7 @@ nltk.download('stopwords')
 
 # Load your dataset
 df = pd.read_csv('./lyric_dataset/spotify_songs.csv')
-
+print(df.head)
 # Preprocessing function for lyrics
 def preprocess_lyrics(text):
     if not isinstance(text, str) or text.strip() == '':
