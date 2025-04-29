@@ -42,15 +42,13 @@ def extract_features(file_path):
     flatness = librosa.feature.spectral_flatness(y=y)
     features['liveness'] = np.mean(flatness) * 5  # Scale to match dataset
 
-    # Approximating valence based on spectral statistics
-    features['valence'] = 0.5  # Default middle value
-    if np.mean(rms) > 0.1:  # If energy is high
+    # Approximating valence based 
+    features['valence'] = 0.5  # 
+    if np.mean(rms) > 0.1:  # If 
         features['valence'] = min(1.0, np.mean(rms) * 5)  # Higher energy often correlates with positive valence
         
-    # Loudness approximation (dB scale)
     features['loudness'] = min(0, -60 + np.mean(rms) * 100)  # Scale to negative dB values
         
-    # Mode (major/minor)
     features['mode'] = 1 if np.mean(chroma[0]) > np.mean(chroma[3]) else 0  # Very rough approximation
         
     # Time signature (default to 4)
@@ -64,15 +62,13 @@ def knn(scaled_features, n_neighbours = 5):
     
     return knn_model
     
-def kmeans(scaled_features, n_clusters = 10):
-    kmeans_model = KMeans(n_clusters = n_clusters, random_state = 42)
-    df['cluster'] = kmeans_model.fit_predict(scaled_features)
+def kmeans(scaled_features, n_clusters=10):
+    kmeans_model = KMeans(n_clusters=n_clusters, random_state=42)
+    kmeans_model.fit(scaled_features)
     
     return kmeans_model
 
-def knn_recommend(df, song_features, features, scaled_features, n_recommendations = 5):
-    knn_model = knn(scaled_features, n_recommendations)
-    
+def knn_recommend(df, song_features, features, scaled_features, n_recommendations=5):
     feature_values = []
     for f in features:
         value = song_features.get(f, 0)
@@ -80,20 +76,29 @@ def knn_recommend(df, song_features, features, scaled_features, n_recommendation
             value = float(np.mean(value)) 
         feature_values.append(value)
     
-    feature_array = np.array(feature_values).reshape(1, -1)
-    scaled_song_features = scaler.transform(feature_array)
-    # feature_array = np.array([song_features.get(f, 0) for f in features]).reshape(1, -1)
-    # scaled_song_features = scaler.transform(feature_array)
+    feature_df = pd.DataFrame([feature_values], columns=features)
+    scaled_song_features = scaler.transform(feature_df)
     
-    dist, ind = knn_model.kneighbors(scaled_song_features)
+    similarity_scores = cosine_similarity(scaled_song_features, scaled_features)[0]
     
-    recommendations = df.iloc[ind[0]][['track_name', 'artists', 'track_genre', 'popularity']]
+    similarity_df = pd.DataFrame({
+        'index': range(len(similarity_scores)),
+        'similarity_score': similarity_scores
+    })
     
-    return recommendations, dist[0]
+    similarity_df = similarity_df.sort_values('similarity_score', ascending=False)
+    
+    start_idx = 1 if similarity_df.iloc[0]['similarity_score'] > 0.999 else 0
+    top_indices = similarity_df.iloc[start_idx:start_idx+n_recommendations]['index'].values
+    
+    recommendations = df.iloc[top_indices].copy()
+    recommendations['similarity_score'] = similarity_scores[top_indices]
+    
+    final_recommendations = recommendations[['track_name', 'artists', 'track_genre', 'popularity', 'similarity_score']]
+    
+    return final_recommendations, similarity_scores[top_indices]
 
-def kmeans_recommend(df, song_features, features, scaled_features):
-    kmeans_model = kmeans(scaled_features)
-    
+def kmeans_recommend(df, song_features, features, scaled_features, n_recommendations=5, n_clusters=20):
     feature_values = []
     for f in features:
         value = song_features.get(f, 0)
@@ -101,22 +106,47 @@ def kmeans_recommend(df, song_features, features, scaled_features):
             value = float(np.mean(value))
         feature_values.append(value)
     
-    feature_array = np.array(feature_values).reshape(1, -1)
-    scaled_song_features = scaler.transform(feature_array)
+    feature_df = pd.DataFrame([feature_values], columns=features)
+    scaled_song_features = scaler.transform(feature_df)
     
-    # feature_array = np.array([song_features.get(f, 0) for f in features]).reshape(1, -1)
-    # scaled_song_features = scaler.transform(feature_array)
+    kmeans_model = KMeans(n_clusters=n_clusters, random_state=42)
+    clusters = kmeans_model.fit_predict(scaled_features)
+    
+    temp_df = df.copy()
+    temp_df['cluster'] = clusters
     
     cluster = kmeans_model.predict(scaled_song_features)[0]
     
-    recommendations = df[df['cluster'] == cluster][['track_name', 'artists', 'track_genre', 'popularity']]
+    cluster_songs = temp_df[temp_df['cluster'] == cluster].copy()
     
-    return recommendations.sample(min(5, len(recommendations)))    
+    if len(cluster_songs) <= 1:  
+        print(f"Cluster {cluster} has too few songs. Finding nearby clusters...")
+        
+        cluster_distances = []
+        for i, center in enumerate(kmeans_model.cluster_centers_):
+            if i != cluster:  
+                dist = np.linalg.norm(scaled_song_features - center.reshape(1, -1))
+                cluster_distances.append((i, dist))
+        
+        cluster_distances.sort(key=lambda x: x[1])
+        nearest_cluster = cluster_distances[0][0]
+        
+        print(f"Using nearest cluster {nearest_cluster} instead")
+        cluster_songs = temp_df[temp_df['cluster'] == nearest_cluster].copy()
     
-def cosine_recommend(df, song_features, features, scaled_features, n_recommendations = 5):
-    # feature_array = np.array([song_features.get(f, 0) for f in features]).reshape(1, -1)
-    # scaled_song_features = scaler.transform(feature_array)
-   
+    similarities = cosine_similarity(scaled_song_features, 
+                                    scaled_features[cluster_songs.index])[0]
+    
+    cluster_songs['similarity_score'] = similarities
+    
+    cluster_songs = cluster_songs[cluster_songs['similarity_score'] < 0.999]
+    
+    recommendations = cluster_songs.sort_values('similarity_score', ascending=False)
+    recommendations = recommendations[['track_name', 'artists', 'track_genre', 'popularity', 'similarity_score']]
+    
+    return recommendations.head(n_recommendations)
+    
+def cosine_recommend(df, song_features, features, scaled_features, n_recommendations=5):
     feature_values = []
     for f in features:
         value = song_features.get(f, 0)
@@ -124,15 +154,26 @@ def cosine_recommend(df, song_features, features, scaled_features, n_recommendat
             value = float(np.mean(value))
         feature_values.append(value)
     
-    feature_array = np.array(feature_values).reshape(1, -1)
-    scaled_song_features = scaler.transform(feature_array)
+    feature_df = pd.DataFrame([feature_values], columns=features)
+    scaled_song_features = scaler.transform(feature_df)
    
     similarity_scores = cosine_similarity(scaled_song_features, scaled_features)[0]
-    top_ind = similarity_scores.argsort()[-n_recommendations:][::-1]
     
-    recommendations = df.iloc[top_ind][['track_name', 'artists', 'track_genre', 'popularity']]
+    sorted_indices = np.argsort(-similarity_scores)
     
-    return recommendations, similarity_scores[top_ind]
+    if similarity_scores[sorted_indices[0]] > 0.999:
+        top_indices = sorted_indices[1:n_recommendations+1]
+    else:
+        top_indices = sorted_indices[:n_recommendations]
+    
+    recommendations = df.iloc[top_indices][['track_name', 'artists', 'track_genre', 'popularity']]
+    scores_to_return = similarity_scores[top_indices]
+    
+    recommendations = recommendations.copy()
+    recommendations['similarity_score'] = scores_to_return
+    recommendations = recommendations.sort_values('similarity_score', ascending=False)
+    
+    return recommendations, scores_to_return    
     
 def add_to_dataset(df, audio_path, popularity = 50, explicit = False):
     features = extract_features(audio_path)
@@ -158,7 +199,7 @@ def add_to_dataset(df, audio_path, popularity = 50, explicit = False):
         'tempo': features['tempo'],
         'duration_ms': features['duration_ms'],
         'track_genre': 'indian-indie'   ,
-        'time_signatue': features['time_signature']     
+        'time_signature': features['time_signature']     
     }    
     
     df = pd.concat([df, pd.DataFrame([new_song])], ignore_index = True)
@@ -169,15 +210,12 @@ dataset_path = 'spotify_dataset/dataset.csv'
 song_path = 'Foolmuse.mp3'
 
 df = pd.read_csv(dataset_path)
-df = add_to_dataset(df, song_path)
+# df = add_to_dataset(df, song_path)  
 
 print(df.shape)
 
 features = ['danceability', 'energy', 'loudness', 'speechiness', 'acousticness', 'instrumentalness', 'liveness', 'valence', 'tempo']
 print((df.columns))
-
-df = df.drop_duplicates(subset=['track_name', 'artists'])
-df.to_csv('spotify_dataset/dataset.csv', index = False)
 
 scaler = StandardScaler()
 scaled_features = scaler.fit_transform(df[features])
