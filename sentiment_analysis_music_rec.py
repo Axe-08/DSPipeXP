@@ -18,7 +18,7 @@ nltk.download('punkt')
 nltk.download('stopwords')
 
 # Load your dataset
-df = pd.read_csv('your_spotify_data.csv')
+df = pd.read_csv('./lyric_dataset/spotify_songs.csv')
 
 # Preprocessing function for lyrics
 def preprocess_lyrics(text):
