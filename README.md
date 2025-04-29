@@ -8,8 +8,6 @@ A comprehensive music recommendation system that uses lyrics, audio features, se
 - Audio feature analysis
 - Sentiment analysis using VADER and TextBlob
 - Topic modeling using LDA
-- Cross-genre recommendations
-- Mood-based song suggestions
 
 ## Project Structure
 
@@ -17,12 +15,10 @@ A comprehensive music recommendation system that uses lyrics, audio features, se
 .
 ├── src/                    # Source code
 │   └── sentiment_analysis_music_rec.py
-├── data/                   # Dataset files
+├── lyric_dataset/                   # Dataset files
 │   └── spotify_songs.csv
 ├── scripts/               # Utility scripts
 │   └── lyric_dataset_download.py
-├── tests/                 # Test files
-├── backup/                # Backup of unused files
 ├── requirements.txt       # Project dependencies
 └── README.md             # Project documentation
 ```
@@ -57,23 +53,6 @@ recommendations = recommender.get_recommendations_by_name(
     top_n=5
 )
 ```
-
-2. Get mood-based recommendations:
-```python
-happy_songs = recommender.get_emotional_recommendations(
-    mood='happy',
-    top_n=5
-)
-```
-
-3. Find similar songs from different genres:
-```python
-cross_genre = recommender.find_similar_lyrics_different_genre(
-    song_idx=0,
-    top_n=5
-)
-```
-
 ## Customization
 
 You can adjust the weights of different features using:
@@ -85,11 +64,3 @@ recommender.adjust_weights(
     topic_weight=0.1
 )
 ```
-
-## Contributing
-
-Feel free to open issues or submit pull requests for improvements.
-
-## License
-
-MIT License
