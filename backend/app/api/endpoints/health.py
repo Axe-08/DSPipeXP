@@ -7,6 +7,7 @@ from app.core.redis import get_redis
 from app.core.config import settings
 import logging
 import traceback
+from urllib.parse import urlparse
 
 logger = logging.getLogger(__name__)
 
@@ -47,6 +48,21 @@ async def check_redis_connection() -> tuple[bool, str]:
         logger.error(error_details)
         return False, error_details
 
+def get_redacted_url(url: str | None) -> str:
+    """Return a redacted version of the URL with password hidden."""
+    if not url:
+        return "not set"
+    try:
+        parsed = urlparse(url)
+        if parsed.password:
+            # Replace password with ***
+            netloc = parsed.netloc.replace(parsed.password, "***")
+            return url.replace(parsed.netloc, netloc)
+        return url
+    except Exception as e:
+        logger.error(f"Error redacting URL: {e}")
+        return "invalid url format"
+
 @router.get("/health")
 async def health_check(db: AsyncSession = Depends(get_db)):
     response = {
@@ -62,7 +78,7 @@ async def health_check(db: AsyncSession = Depends(get_db)):
             "status": "unknown",
             "version": None,
             "error": None,
-            "url_format": settings.REDIS_URL.replace(settings.REDIS_PASSWORD, "***") if settings.REDIS_URL else "not set"
+            "url_format": get_redacted_url(settings.REDIS_URL)
         }
     }
     
