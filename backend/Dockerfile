@@ -10,6 +10,7 @@ RUN apt-get update && apt-get install -y \
     libpq-dev \
     ffmpeg \
     curl \
+    netcat \
     python3-dev \
     build-essential \
     && rm -rf /var/lib/apt/lists/*
@@ -28,6 +29,9 @@ RUN pip install -r requirements.txt
 # Copy application code
 COPY . .
 
+# Make prestart script executable
+RUN chmod +x prestart.sh
+
 # Create temporary directories
 RUN mkdir -p /tmp/audio /tmp/cache && \
     chmod 777 /tmp/audio /tmp/cache
@@ -40,6 +44,8 @@ ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
 ENV AUDIO_STORAGE_PATH=/tmp/audio
 ENV CACHE_STORAGE_PATH=/tmp/cache
+ENV DB_HOST=localhost
+ENV DB_PORT=5432
 
 # Create non-root user and set permissions
 RUN useradd -m -u 1000 appuser && \
@@ -55,5 +61,5 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
 # Expose port
 EXPOSE 8000
 
-# Start command
-CMD ["python", "-m", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"] 
+# Start command with prestart script
+CMD ["bash", "-c", "./prestart.sh && python -m uvicorn app.main:app --host 0.0.0.0 --port 8000"] 

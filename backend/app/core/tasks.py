@@ -4,8 +4,9 @@ from datetime import datetime
 from typing import Optional
 from fastapi import FastAPI
 from sqlalchemy.ext.asyncio import AsyncSession
-from app.core.database import get_db
+from app.core.database import get_db, db_manager
 from app.utils.cleanup import storage_manager
+from app.core.config import settings
 import httpx
 
 logger = logging.getLogger(__name__)
@@ -21,8 +22,8 @@ class BackgroundTasks:
         """Periodic cleanup worker"""
         while self.is_running:
             try:
-                async with AsyncSession(get_db()) as db:
-                    await storage_manager.check_and_cleanup(db)
+                async with db_manager.SessionLocal() as session:
+                    await storage_manager.check_and_cleanup(session)
             except Exception as e:
                 logger.error(f"Error in cleanup worker: {str(e)}")
             
@@ -33,9 +34,11 @@ class BackgroundTasks:
         """Keep the service alive by pinging health endpoint"""
         while self.is_running:
             try:
+                host = settings.HOST
+                port = settings.PORT
                 async with httpx.AsyncClient() as client:
                     response = await client.get(
-                        "http://localhost:8000/api/v1/health"
+                        f"http://{host}:{port}/api/v1/health"
                     )
                     logger.debug(f"Keepalive ping: {response.status_code}")
             except Exception as e:

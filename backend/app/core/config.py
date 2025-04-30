@@ -76,6 +76,10 @@ class Settings(BaseSettings):
     class Config:
         env_file = ".env"
         case_sensitive = True
+        json_schema_extra = {
+            "title": "API Settings",
+            "description": "Configuration settings for the Music Recommendation API"
+        }
 
 def parse_comma_separated_list(value: str | List[str] | None) -> List[str]:
     if value is None:

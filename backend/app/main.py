@@ -29,7 +29,7 @@ setup_logging()
 # Include routers
 app.include_router(youtube.router, prefix="/api/v1/youtube", tags=["youtube"])
 app.include_router(search.router, prefix="/api/v1/search", tags=["search"])
-app.include_router(health.router, prefix="/api/v1/health", tags=["health"])
+app.include_router(health.router, prefix="/api/v1", tags=["health"])
 
 # Initialize background tasks
 background_tasks = BackgroundTasks(app)
