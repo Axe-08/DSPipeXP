@@ -53,8 +53,8 @@ def get_async_database_url() -> str:
     return url
 
 class DatabaseManager:
-    def __init__(self, database_url: str):
-        self.database_url = get_async_database_url()
+    def __init__(self, database_url: Optional[str] = None):
+        self.database_url = database_url if database_url else get_async_database_url()
         self.engine = create_async_engine(self.database_url)
         self.SessionLocal = async_sessionmaker(self.engine, expire_on_commit=False)
         self.vector_store = VectorStore()
@@ -361,8 +361,8 @@ class DatabaseManager:
                 "connection_info": {"url": "error"}
             }
 
-# Create global instance with production settings
-db_manager = DatabaseManager("postgresql+asyncpg://postgres:postgres@db:5432/dspipexp")
+# Create global instance with settings
+db_manager = DatabaseManager()
 
 # Dependency for FastAPI
 async def get_db() -> AsyncGenerator[AsyncSession, None]:
