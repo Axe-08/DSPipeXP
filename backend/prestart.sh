@@ -16,31 +16,16 @@ fi
 
 echo "Attempting to parse DATABASE_URL..."
 
-# Try different parsing methods
-# Method 1: Using grep
-if echo "$DATABASE_URL" | grep -q "^postgresql://"; then
-    echo "Found postgresql:// prefix"
-    DB_HOST=$(echo "$DATABASE_URL" | grep -oP '(?<=@)[^:]+(?=:)')
-    DB_PORT=$(echo "$DATABASE_URL" | grep -oP '(?<=:)[0-9]+(?=/)')
-    echo "Method 1 parsing results - DB_HOST: $DB_HOST, DB_PORT: $DB_PORT"
-fi
-
-# Method 2: Using sed
-if [ -z "$DB_HOST" ] || [ -z "$DB_PORT" ]; then
-    echo "Trying method 2..."
-    DB_HOST=$(echo "$DATABASE_URL" | sed -n 's/.*@\([^:]*\).*/\1/p')
-    DB_PORT=$(echo "$DATABASE_URL" | sed -n 's/.*:\([0-9]*\)\/.*/\1/p')
-    echo "Method 2 parsing results - DB_HOST: $DB_HOST, DB_PORT: $DB_PORT"
-fi
-
-# Method 3: Using bash regex
-if [ -z "$DB_HOST" ] || [ -z "$DB_PORT" ]; then
-    echo "Trying method 3..."
-    if [[ $DATABASE_URL =~ @([^:]+):([0-9]+)/ ]]; then
-        DB_HOST="${BASH_REMATCH[1]}"
-        DB_PORT="${BASH_REMATCH[2]}"
-        echo "Method 3 parsing results - DB_HOST: $DB_HOST, DB_PORT: $DB_PORT"
-    fi
+# Parse using extended pattern matching
+if [[ "$DATABASE_URL" =~ postgresql://[^:]+:[^@]+@([^:/]+):([0-9]+)/[^/]+ ]]; then
+    DB_HOST="${BASH_REMATCH[1]}"
+    DB_PORT="${BASH_REMATCH[2]}"
+    echo "Successfully parsed DATABASE_URL"
+else
+    # Fallback method using cut and sed
+    echo "Trying fallback method..."
+    DB_HOST=$(echo "$DATABASE_URL" | sed 's|.*@\([^:]*\):.*|\1|')
+    DB_PORT=$(echo "$DATABASE_URL" | sed 's|.*:\([0-9]*\)/.*|\1|')
 fi
 
 # Final check
