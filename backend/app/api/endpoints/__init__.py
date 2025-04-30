@@ -1,23 +1,19 @@
 """
 API endpoints package initialization
 """
+from fastapi import APIRouter
 from . import songs, recommendations, youtube, health, search, monitoring
 
+# Create main router
+router = APIRouter()
+
+# Include all sub-routers
+router.include_router(health.router, prefix="/health", tags=["health"])
+router.include_router(monitoring.router, prefix="/monitoring", tags=["monitoring"])
+router.include_router(songs.router, prefix="/songs", tags=["songs"])
+router.include_router(youtube.router, prefix="/youtube", tags=["youtube"])
+router.include_router(search.router, prefix="/search", tags=["search"])
+router.include_router(recommendations.router, prefix="/recommendations", tags=["recommendations"])
+
 # Export all routers
-__all__ = ['songs', 'recommendations', 'youtube', 'health', 'search', 'monitoring']
-
-# Import routers for direct access
-from .songs import router as songs_router
-from .recommendations import router as recommendations_router
-from .youtube import router as youtube_router
-from .health import router as health_router
-from .search import router as search_router
-from .monitoring import router as monitoring_router
-
-# Re-export routers
-router = songs_router
-router.include_router(recommendations_router, prefix="/recommendations", tags=["recommendations"])
-router.include_router(youtube_router, prefix="/youtube", tags=["youtube"])
-router.include_router(health_router, prefix="/health", tags=["health"])
-router.include_router(search_router, prefix="/search", tags=["search"])
-router.include_router(monitoring_router, prefix="/monitoring", tags=["monitoring"]) 
+__all__ = ['songs', 'recommendations', 'youtube', 'health', 'search', 'monitoring'] 

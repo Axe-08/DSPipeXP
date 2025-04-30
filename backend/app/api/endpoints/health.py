@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from typing import Dict
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import text
-from app.core.database import get_db
+from app.core.database import get_db, db_manager
 from app.core.redis import get_redis
 from app.core.config import settings
 import logging
@@ -79,21 +79,22 @@ async def health_check():
             "status": "unknown",
             "version": None,
             "error": None,
-            "url_format": get_redacted_url(settings.REDIS_URL)
+            "url_format": None if not settings.REDIS_URL else settings.REDIS_URL.replace(
+                urlparse(settings.REDIS_URL).password or "", "***"
+            ) if settings.REDIS_URL else None
         }
     }
     
     # Check database
     try:
-        # Create a new database session for health check
-        async with AsyncSession(bind=get_db()) as db:
+        async with db_manager.SessionLocal() as session:
             # Get database version
-            result = await db.execute(text("SELECT version()"))
+            result = await session.execute(text("SELECT version()"))
             version = await result.scalar()
             
             # Check if schema is initialized by checking alembic_version table
             try:
-                result = await db.execute(text("SELECT version_num FROM alembic_version"))
+                result = await session.execute(text("SELECT version_num FROM alembic_version"))
                 migration_version = await result.scalar()
                 response["database"].update({
                     "status": "healthy",

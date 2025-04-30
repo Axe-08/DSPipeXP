@@ -3,8 +3,10 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.core.config import settings
 from app.core.logging import setup_logging
 from app.core.tasks import BackgroundTasks
-from app.api.endpoints import health, songs, youtube, search, recommendations, monitoring
+from app.core.testing import run_startup_tests
+from app.api.endpoints import router as api_router
 import logging
+import asyncio
 
 logger = logging.getLogger(__name__)
 
@@ -27,27 +29,9 @@ app.add_middleware(
 # Configure logging
 setup_logging()
 
-# Include routers with debug logging
+# Include all routes under /api/v1
 logger.debug("Registering API routes...")
-
-# Core endpoints
-logger.debug("Registering health endpoint...")
-app.include_router(health.router, prefix="/api/v1/health", tags=["health"])
-
-logger.debug("Registering monitoring endpoints...")
-app.include_router(monitoring.router, prefix="/api/v1/monitoring", tags=["monitoring"])
-
-logger.debug("Registering song endpoints...")
-app.include_router(songs.router, prefix="/api/v1/songs", tags=["songs"])
-
-logger.debug("Registering YouTube endpoints...")
-app.include_router(youtube.router, prefix="/api/v1/youtube", tags=["youtube"])
-
-logger.debug("Registering search endpoints...")
-app.include_router(search.router, prefix="/api/v1/search", tags=["search"])
-
-logger.debug("Registering recommendation endpoints...")
-app.include_router(recommendations.router, prefix="/api/v1/recommendations", tags=["recommendations"])
+app.include_router(api_router, prefix="/api/v1")
 
 # Initialize background tasks
 background_tasks = BackgroundTasks(app)
@@ -64,6 +48,10 @@ async def startup_event():
         # Start background tasks
         await background_tasks.start()
         logger.info("Application started successfully")
+        
+        # Run endpoint tests in the background
+        asyncio.create_task(run_startup_tests(app))
+        
     except Exception as e:
         logger.error(f"Error during startup: {str(e)}")
         raise
