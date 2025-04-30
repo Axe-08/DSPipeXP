@@ -1,19 +1,24 @@
 import uvicorn
-import os
-from dotenv import load_dotenv
+import logging
+from app.core.config import settings
 
-# Load environment variables from .env file
-load_dotenv()
+# Configure logging for uvicorn
+log_config = uvicorn.config.LOGGING_CONFIG
+log_config["formatters"]["access"]["fmt"] = '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+log_config["formatters"]["default"]["fmt"] = '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 
 if __name__ == "__main__":
-    # Get port from environment variable or use default
-    port = int(os.getenv("PORT", 8000))
+    print(f"Starting server on {settings.HOST}:{settings.PORT}")
+    print(f"Environment: {settings.ENVIRONMENT}")
+    print(f"Debug mode: {settings.DEBUG}")
+    print(f"API docs available at: http://{settings.HOST}:{settings.PORT}/docs")
     
-    # Run the FastAPI application
     uvicorn.run(
         "app.main:app",
-        host="0.0.0.0",
-        port=port,
-        reload=True,  # Enable auto-reload during development
-        workers=4     # Number of worker processes
+        host=settings.HOST,
+        port=settings.PORT,
+        reload=settings.DEBUG,
+        log_level="debug" if settings.DEBUG else "info",
+        log_config=log_config,
+        access_log=True
     ) 

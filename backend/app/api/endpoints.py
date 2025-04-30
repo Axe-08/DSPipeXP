@@ -4,11 +4,35 @@ from sqlalchemy.orm import Session
 from ..core.database import db_manager
 from ..core.recommender import recommender
 from ..core.models import SongCreate, SongInDB, RecommendationResponse
+from .endpoints import health, songs, youtube, search, recommendations, monitoring
 import tempfile
 import os
 import json
+import logging
 
+logger = logging.getLogger(__name__)
+
+# Create main router
 router = APIRouter()
+
+# Include all sub-routers
+logger.debug("Including health endpoints...")
+router.include_router(health.router, prefix="/health", tags=["health"])
+
+logger.debug("Including monitoring endpoints...")
+router.include_router(monitoring.router, prefix="/monitoring", tags=["monitoring"])
+
+logger.debug("Including song endpoints...")
+router.include_router(songs.router, prefix="/songs", tags=["songs"])
+
+logger.debug("Including YouTube endpoints...")
+router.include_router(youtube.router, prefix="/youtube", tags=["youtube"])
+
+logger.debug("Including search endpoints...")
+router.include_router(search.router, prefix="/search", tags=["search"])
+
+logger.debug("Including recommendation endpoints...")
+router.include_router(recommendations.router, prefix="/recommendations", tags=["recommendations"])
 
 def get_db():
     db = next(db_manager.get_db())
