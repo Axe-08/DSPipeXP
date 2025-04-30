@@ -27,7 +27,7 @@ class Settings(BaseSettings):
     DATABASE_URL: str = "postgresql://postgres:postgres@localhost:5432/dspipexp"
     
     # CORS Settings
-    _CORS_ORIGINS: str = "http://localhost:3000,http://localhost:8080"
+    _CORS_ORIGINS: str = "*"  # Allow all origins in development
     _CORS_METHODS: str = "GET,POST,PUT,DELETE,OPTIONS"
     _CORS_HEADERS: str = "Content-Type,Authorization,X-API-Key"
     
