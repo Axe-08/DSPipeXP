@@ -3,7 +3,7 @@ services:
     name: dspipexp-api
     env: docker
     region: oregon
-    plan: standard
+    plan: free
     healthCheckPath: /api/v1/health
     envVars:
       - key: DATABASE_URL
@@ -27,10 +27,10 @@ services:
         value: 8000
       - key: HOST
         value: 0.0.0.0
-    disk:
-      name: audio-data
-      mountPath: /app/data/audio
-      sizeGB: 10
+      - key: AUDIO_STORAGE_PATH
+        value: /tmp/audio
+      - key: CACHE_STORAGE_PATH
+        value: /tmp/cache
     autoDeploy: true
 
   - type: redis
@@ -38,12 +38,11 @@ services:
     ipAllowList:
       - source: 0.0.0.0/0
         description: everywhere
-    plan: starter
-    maxmemoryPolicy: noeviction
+    plan: free
 
 databases:
   - name: dspipexp-db
-    plan: starter
+    plan: free
     ipAllowList:
       - source: 0.0.0.0/0
         description: everywhere 
