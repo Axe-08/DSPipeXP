@@ -44,6 +44,7 @@ class Settings(BaseSettings):
     # Storage Settings
     VECTOR_STORE_PATH: str = str(CACHE_DIR / "vector_store.pkl")
     AUDIO_STORAGE_PATH: str = str(AUDIO_DIR)
+    CACHE_STORAGE_PATH: str = str(CACHE_DIR)
     
     # Feature Extraction Settings
     WORD2VEC_DIMENSION: int = 100
@@ -101,4 +102,5 @@ ENVIRONMENT = settings.ENVIRONMENT
 
 # Ensure required directories exist
 os.makedirs(settings.AUDIO_STORAGE_PATH, exist_ok=True)
+os.makedirs(settings.CACHE_STORAGE_PATH, exist_ok=True)
 os.makedirs(os.path.dirname(settings.VECTOR_STORE_PATH), exist_ok=True) 

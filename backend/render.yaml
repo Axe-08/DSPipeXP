@@ -6,7 +6,7 @@ services:
     plan: free
     healthCheckPath: /api/v1/health
     buildCommand: docker build -t dspipexp-api .
-    startCommand: docker run -p 10000:10000 -e DATABASE_URL=postgresql://dspipexp_user:GJE1w9Br8L4auWLfSC4jes8fwZQDtbpv@dpg-d08v2s49c44c73a9qeqg-a/dspipexp -e REDIS_URL=$REDIS_URL -e PORT=10000 dspipexp-api
+    startCommand: docker run -p 8000:8000 -e DATABASE_URL=postgresql://dspipexp_user:GJE1w9Br8L4auWLfSC4jes8fwZQDtbpv@dpg-d08v2s49c44c73a9qeqg-a/dspipexp -e REDIS_URL=$REDIS_URL -e PORT=8000 dspipexp-api
     envVars:
       - key: REDIS_URL
         fromService:
@@ -22,7 +22,7 @@ services:
       - key: SECRET_KEY
         generateValue: true
       - key: PORT
-        value: 10000
+        value: 8000
       - key: HOST
         value: 0.0.0.0
       - key: AUDIO_STORAGE_PATH

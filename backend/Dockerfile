@@ -38,7 +38,7 @@ RUN mkdir -p /tmp/audio /tmp/cache && \
 
 # Set environment variables
 ENV PYTHONPATH=/app
-ENV PORT=10000
+ENV PORT=8000
 ENV PATH="/usr/local/bin:$PATH"
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
@@ -58,7 +58,7 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
     CMD curl -f http://localhost:${PORT}/api/v1/health || exit 1
 
 # Expose port
-EXPOSE 10000
+EXPOSE 8000
 
 # Start command with prestart script
-CMD ["bash", "-c", "./prestart.sh && python -m uvicorn app.main:app --host 0.0.0.0 --port 10000"] 
+CMD ["bash", "-c", "./prestart.sh && python -m uvicorn app.main:app --host 0.0.0.0 --port 8000"] 
