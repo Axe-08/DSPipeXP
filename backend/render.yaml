@@ -31,16 +31,6 @@ services:
         value: /tmp/audio
       - key: CACHE_STORAGE_PATH
         value: /tmp/cache
-      - key: DB_HOST
-        fromService:
-          name: dspipexp-db
-          type: postgres
-          property: host
-      - key: DB_PORT
-        fromService:
-          name: dspipexp-db
-          type: postgres
-          property: port
     autoDeploy: true
 
   - type: redis
