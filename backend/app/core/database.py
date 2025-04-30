@@ -38,6 +38,9 @@ class Song(Base):
     sentiment_features = Column(JSON, nullable=True)
     topic_features = Column(JSON, nullable=True)
     youtube_url = Column(String, nullable=True)
+    youtube_url_updated_at = Column(DateTime, nullable=True)
+    youtube_url_status = Column(String, nullable=True)  # 'valid', 'invalid', 'pending'
+    youtube_url_error = Column(String, nullable=True)  # Store any error messages
     audio_path = Column(String, nullable=True)
     is_original = Column(Boolean, default=False)
     added_date = Column(DateTime, server_default=text('now()'))
@@ -231,6 +234,55 @@ class DatabaseManager:
                 
             except Exception as e:
                 logger.error(f"Error updating song {song_id}: {e}")
+                await session.rollback()
+                return None
+
+    async def create_song(self, song_data: Dict) -> Optional[Song]:
+        """Create a new song in the database."""
+        def convert_numpy_types(obj):
+            if isinstance(obj, np.floating):
+                return float(obj)
+            elif isinstance(obj, np.integer):
+                return int(obj)
+            elif isinstance(obj, np.ndarray):
+                return obj.tolist()
+            elif isinstance(obj, dict):
+                return {k: convert_numpy_types(v) for k, v in obj.items()}
+            elif isinstance(obj, list):
+                return [convert_numpy_types(i) for i in obj]
+            return obj
+
+        async with self.SessionLocal() as session:
+            try:
+                # Convert dict fields to JSON strings
+                for key in ['audio_features', 'word2vec_features', 'sentiment_features', 'topic_features']:
+                    if key in song_data and isinstance(song_data[key], dict):
+                        song_data[key] = json.dumps(convert_numpy_types(song_data[key]))
+
+                # Create new song
+                song = Song(**song_data)
+                session.add(song)
+                await session.commit()
+                await session.refresh(song)
+
+                # Parse JSON fields in response
+                if song.audio_features and isinstance(song.audio_features, str):
+                    song.audio_features = json.loads(song.audio_features)
+                if song.word2vec_features and isinstance(song.word2vec_features, str):
+                    song.word2vec_features = json.loads(song.word2vec_features)
+                if song.sentiment_features and isinstance(song.sentiment_features, str):
+                    song.sentiment_features = json.loads(song.sentiment_features)
+                if song.topic_features and isinstance(song.topic_features, str):
+                    song.topic_features = json.loads(song.topic_features)
+
+                # Add to vector store if audio features present
+                if song.audio_features:
+                    self.vector_store.add_song(song.id, song.audio_features)
+
+                return song
+
+            except Exception as e:
+                logger.error(f"Error creating song: {e}")
                 await session.rollback()
                 return None
 
