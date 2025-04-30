@@ -38,7 +38,7 @@ RUN mkdir -p /tmp/audio /tmp/cache && \
 
 # Set environment variables
 ENV PYTHONPATH=/app
-ENV PORT=8000
+ENV PORT=10000
 ENV PATH="/usr/local/bin:$PATH"
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
@@ -46,6 +46,7 @@ ENV AUDIO_STORAGE_PATH=/tmp/audio
 ENV CACHE_STORAGE_PATH=/tmp/cache
 ENV DB_HOST=localhost
 ENV DB_PORT=5432
+ENV HOST=0.0.0.0
 
 # Create non-root user and set permissions
 RUN useradd -m -u 1000 appuser && \
@@ -59,7 +60,7 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
     CMD curl -f http://localhost:${PORT}/api/v1/health || exit 1
 
 # Expose port
-EXPOSE 8000
+EXPOSE ${PORT}
 
 # Start command with prestart script
-CMD ["bash", "-c", "./prestart.sh && python -m uvicorn app.main:app --host 0.0.0.0 --port 8000"] 
+CMD ["bash", "-c", "./prestart.sh && python -m uvicorn app.main:app --host 0.0.0.0 --port ${PORT}"] 
