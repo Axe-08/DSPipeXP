@@ -7,7 +7,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.database import get_db, db_manager
 from app.utils.cleanup import storage_manager
 from app.core.config import settings
-import httpx
 
 logger = logging.getLogger(__name__)
 
@@ -15,7 +14,6 @@ class BackgroundTasks:
     def __init__(self, app: FastAPI):
         self.app = app
         self.cleanup_task: Optional[asyncio.Task] = None
-        self.keepalive_task: Optional[asyncio.Task] = None
         self.is_running = False
 
     async def cleanup_worker(self):
@@ -30,23 +28,6 @@ class BackgroundTasks:
             # Run cleanup every hour
             await asyncio.sleep(3600)
 
-    async def keepalive_worker(self):
-        """Keep the service alive by pinging health endpoint"""
-        while self.is_running:
-            try:
-                host = settings.HOST
-                port = settings.PORT
-                async with httpx.AsyncClient() as client:
-                    response = await client.get(
-                        f"http://{host}:{port}/api/v1/health"
-                    )
-                    logger.debug(f"Keepalive ping: {response.status_code}")
-            except Exception as e:
-                logger.error(f"Error in keepalive worker: {str(e)}")
-            
-            # Ping every 10 minutes
-            await asyncio.sleep(600)
-
     async def start(self):
         """Start background tasks"""
         self.is_running = True
@@ -55,12 +36,6 @@ class BackgroundTasks:
         self.cleanup_task = asyncio.create_task(
             self.cleanup_worker(),
             name="cleanup_worker"
-        )
-        
-        # Start keepalive task
-        self.keepalive_task = asyncio.create_task(
-            self.keepalive_worker(),
-            name="keepalive_worker"
         )
         
         logger.info("Background tasks started")
@@ -73,13 +48,6 @@ class BackgroundTasks:
             self.cleanup_task.cancel()
             try:
                 await self.cleanup_task
-            except asyncio.CancelledError:
-                pass
-            
-        if self.keepalive_task:
-            self.keepalive_task.cancel()
-            try:
-                await self.keepalive_task
             except asyncio.CancelledError:
                 pass
             
