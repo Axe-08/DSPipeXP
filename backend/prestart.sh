@@ -21,6 +21,9 @@ DB_HOST="dpg-d08v2s49c44c73a9qeqg-a"
 DB_PORT="5432"
 DB_EXTERNAL_HOST="dpg-d08v2s49c44c73a9qeqg-a.oregon-postgres.render.com"
 
+# Convert postgresql:// to postgres:// for psql
+PSQL_URL=$(echo "$DATABASE_URL" | sed 's/^postgresql:/postgres:/')
+
 echo "Using database connection info:"
 echo "DB_HOST (internal): $DB_HOST"
 echo "DB_HOST (external): $DB_EXTERNAL_HOST"
@@ -32,8 +35,9 @@ timeout=120
 counter=0
 
 # Try different connection methods
-until (PGPASSWORD=GJE1w9Br8L4auWLfSC4jes8fwZQDtbpv psql "postgresql://dspipexp_user@$DB_HOST:$DB_PORT/dspipexp" -c '\q' 2>/dev/null) || \
-      (PGPASSWORD=GJE1w9Br8L4auWLfSC4jes8fwZQDtbpv psql "postgresql://dspipexp_user@$DB_EXTERNAL_HOST:$DB_PORT/dspipexp" -c '\q' 2>/dev/null) || \
+until (PGPASSWORD=GJE1w9Br8L4auWLfSC4jes8fwZQDtbpv psql "${PSQL_URL}" -c '\q' 2>/dev/null) || \
+      (PGPASSWORD=GJE1w9Br8L4auWLfSC4jes8fwZQDtbpv psql "postgres://dspipexp_user@$DB_HOST:$DB_PORT/dspipexp" -c '\q' 2>/dev/null) || \
+      (PGPASSWORD=GJE1w9Br8L4auWLfSC4jes8fwZQDtbpv psql "postgres://dspipexp_user@$DB_EXTERNAL_HOST:$DB_PORT/dspipexp" -c '\q' 2>/dev/null) || \
       (nc -z -w 5 $DB_HOST $DB_PORT 2>/dev/null) || \
       (nc -z -w 5 $DB_EXTERNAL_HOST $DB_PORT 2>/dev/null); do
     counter=$((counter + 1))

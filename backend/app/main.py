@@ -3,7 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.core.config import settings
 from app.core.logging import setup_logging
 from app.core.tasks import BackgroundTasks
-from app.api.endpoints import youtube, search, health
+from app.api.endpoints import youtube, search, health, monitoring
 import logging
 
 logger = logging.getLogger(__name__)
@@ -30,6 +30,7 @@ setup_logging()
 app.include_router(youtube.router, prefix="/api/v1/youtube", tags=["youtube"])
 app.include_router(search.router, prefix="/api/v1/search", tags=["search"])
 app.include_router(health.router, prefix="/api/v1", tags=["health"])
+app.include_router(monitoring.router, prefix="/api/v1/monitoring", tags=["monitoring"])
 
 # Initialize background tasks
 background_tasks = BackgroundTasks(app)
