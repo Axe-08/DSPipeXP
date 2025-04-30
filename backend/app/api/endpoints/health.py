@@ -61,7 +61,8 @@ async def health_check(db: AsyncSession = Depends(get_db)):
         "redis": {
             "status": "unknown",
             "version": None,
-            "error": None
+            "error": None,
+            "url_format": settings.REDIS_URL.replace(settings.REDIS_PASSWORD, "***") if settings.REDIS_URL else "not set"
         }
     }
     
@@ -98,18 +99,26 @@ async def health_check(db: AsyncSession = Depends(get_db)):
         response["status"] = "unhealthy"
 
     # Check Redis
-    try:
-        redis = await get_redis()
-        info = await redis.info()
+    if settings.REDIS_URL:
+        try:
+            redis = await get_redis()
+            info = await redis.info()
+            response["redis"].update({
+                "status": "healthy",
+                "version": info.get("redis_version", "unknown")
+            })
+        except Exception as e:
+            error_msg = f"Redis connection failed: {str(e)}\n{traceback.format_exc()}"
+            logger.error(error_msg)
+            response["redis"].update({
+                "status": "unhealthy",
+                "error": error_msg
+            })
+            response["status"] = "unhealthy"
+    else:
         response["redis"].update({
-            "status": "healthy",
-            "version": info["redis_version"]
+            "status": "not configured",
+            "error": "REDIS_URL not set"
         })
-    except Exception as e:
-        response["redis"].update({
-            "status": "unhealthy",
-            "error": f"Redis connection failed: {str(e)}\n{traceback.format_exc()}"
-        })
-        response["status"] = "unhealthy"
 
     return response 

@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Optional
 import os
 from pathlib import Path
 from pydantic_settings import BaseSettings
@@ -13,8 +13,8 @@ if env_path.exists():
 BASE_DIR: Path = Path(__file__).parent.parent.parent
 
 class Settings(BaseSettings):
-    # API Settings
-    PROJECT_NAME: str = "Music Recommendation API"
+    PROJECT_NAME: str = "DSPipeXP"
+    VERSION: str = "1.0.0"
     API_V1_STR: str = "/api/v1"
     DEBUG: bool = True
     ENVIRONMENT: str = "development"
@@ -24,16 +24,19 @@ class Settings(BaseSettings):
     PORT: int = 8000
     
     # Database Settings
-    DATABASE_URL: str = "postgresql://postgres:postgres@localhost:5432/dspipexp"
+    DATABASE_URL: str
+    
+    # Redis
+    REDIS_URL: Optional[str] = None
+    REDIS_HOST: Optional[str] = None
+    REDIS_PORT: Optional[int] = None
+    REDIS_PASSWORD: Optional[str] = None
     
     # CORS Settings
     _CORS_ORIGINS: str = "*"  # Allow all origins in development
     ALLOWED_ORIGINS: str | None = None  # Alternative env var name
     _CORS_METHODS: str = "GET,POST,PUT,DELETE,OPTIONS"
     _CORS_HEADERS: str = "Content-Type,Authorization,X-API-Key"
-    
-    # Redis Settings
-    REDIS_URL: str = "redis://localhost:6379/0"
     
     # Directory Settings
     BASE_DIR: Path = BASE_DIR
@@ -43,8 +46,8 @@ class Settings(BaseSettings):
     
     # Storage Settings
     VECTOR_STORE_PATH: str = str(CACHE_DIR / "vector_store.pkl")
-    AUDIO_STORAGE_PATH: str = str(AUDIO_DIR)
-    CACHE_STORAGE_PATH: str = str(CACHE_DIR)
+    AUDIO_STORAGE_PATH: str = os.getenv("AUDIO_STORAGE_PATH", "/tmp/audio")
+    CACHE_STORAGE_PATH: str = os.getenv("CACHE_STORAGE_PATH", "/tmp/cache")
     
     # Feature Extraction Settings
     WORD2VEC_DIMENSION: int = 100
@@ -54,11 +57,13 @@ class Settings(BaseSettings):
     MAX_UPLOAD_SIZE: int = 20 * 1024 * 1024  # 20MB
     
     # Security Settings
-    SECRET_KEY: str = "your-secret-key-here"
+    SECRET_KEY: str = "your-secret-key"
     API_KEY_HEADER: str = "X-API-Key"
+    ALGORITHM: str = "HS256"
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
     
     # External API Settings
-    GENIUS_ACCESS_TOKEN: str = "your-genius-token-here"
+    GENIUS_ACCESS_TOKEN: Optional[str] = None
     
     @property
     def CORS_ORIGINS(self) -> List[str]:
@@ -81,6 +86,20 @@ class Settings(BaseSettings):
             "title": "API Settings",
             "description": "Configuration settings for the Music Recommendation API"
         }
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        
+        # Parse Redis URL if provided
+        if self.REDIS_URL and not any([self.REDIS_HOST, self.REDIS_PORT, self.REDIS_PASSWORD]):
+            try:
+                from urllib.parse import urlparse
+                parsed = urlparse(self.REDIS_URL)
+                self.REDIS_HOST = parsed.hostname
+                self.REDIS_PORT = parsed.port or 6379
+                self.REDIS_PASSWORD = parsed.password
+            except Exception as e:
+                print(f"Failed to parse REDIS_URL: {e}")
 
 def parse_comma_separated_list(value: str | List[str] | None) -> List[str]:
     if value is None:

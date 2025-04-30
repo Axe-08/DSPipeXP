@@ -2,11 +2,11 @@ services:
   - type: web
     name: dspipexp-api
     env: docker
-    region: oregon
-    plan: free
+    region: singapore
+    plan: starter
     healthCheckPath: /api/v1/health
     buildCommand: docker build -t dspipexp-api .
-    startCommand: docker run -p 8000:8000 -e DATABASE_URL=$DATABASE_URL -e REDIS_URL=$REDIS_URL -e PORT=8000 dspipexp-api
+    startCommand: docker run -p $PORT:8000 -e DATABASE_URL=$DATABASE_URL -e REDIS_URL=$REDIS_URL -e PORT=8000 dspipexp-api
     envVars:
       - key: DATABASE_URL
         fromDatabase:
@@ -14,8 +14,8 @@ services:
           property: connectionString
       - key: REDIS_URL
         fromService:
-          name: dspipexp-redis
           type: redis
+          name: dspipexp-redis
           property: connectionString
       - key: ENVIRONMENT
         value: production
@@ -37,14 +37,12 @@ services:
 
   - type: redis
     name: dspipexp-redis
-    ipAllowList:
-      - source: 0.0.0.0/0
-        description: everywhere
-    plan: free
+    region: singapore
+    plan: starter
+    maxmemoryPolicy: noeviction
+    ipAllowList: []
 
 databases:
   - name: dspipexp-db
-    plan: free
-    ipAllowList:
-      - source: 0.0.0.0/0
-        description: everywhere 
+    region: singapore
+    plan: starter 
