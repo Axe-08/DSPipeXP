@@ -14,29 +14,13 @@ if [ -z "$DATABASE_URL" ]; then
     exit 1
 fi
 
-echo "Attempting to parse DATABASE_URL..."
+echo "Setting up database connection..."
 
-# Parse using extended pattern matching
-if [[ "$DATABASE_URL" =~ postgresql://[^:]+:[^@]+@([^:/]+):([0-9]+)/[^/]+ ]]; then
-    DB_HOST="${BASH_REMATCH[1]}"
-    DB_PORT="${BASH_REMATCH[2]}"
-    echo "Successfully parsed DATABASE_URL"
-else
-    # Fallback method using cut and sed
-    echo "Trying fallback method..."
-    DB_HOST=$(echo "$DATABASE_URL" | sed 's|.*@\([^:]*\):.*|\1|')
-    DB_PORT=$(echo "$DATABASE_URL" | sed 's|.*:\([0-9]*\)/.*|\1|')
-fi
+# Hardcoded values for this specific database
+DB_HOST="dpg-d08v2s49c44c73a9qeqg-a"
+DB_PORT="5432"
 
-# Final check
-if [ -z "$DB_HOST" ] || [ -z "$DB_PORT" ]; then
-    echo "ERROR: Could not parse DATABASE_URL"
-    echo "DB_HOST or DB_PORT is empty"
-    echo "Please ensure DATABASE_URL is in format: postgresql://user:pass@host:port/db"
-    exit 1
-fi
-
-echo "Successfully parsed database connection info:"
+echo "Using database connection info:"
 echo "DB_HOST: $DB_HOST"
 echo "DB_PORT: $DB_PORT"
 
