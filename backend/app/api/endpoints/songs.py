@@ -335,14 +335,16 @@ async def get_songs(
     skip: int = Query(0, ge=0),
     limit: int = Query(10, ge=1, le=100)
 ):
-    """
-    Get a list of songs with pagination
-    """
+    """Get a list of songs with pagination."""
     try:
         songs = await db_manager.get_songs(skip=skip, limit=limit)
         return songs
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        logger.error(f"Error getting songs: {str(e)}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error getting songs: {str(e)}"
+        )
 
 @router.get("/{song_id}", response_model=SongResponse)
 async def get_song(song_id: int):
@@ -358,50 +360,58 @@ async def get_song(song_id: int):
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.post("/", response_model=Song)
-async def create_song(
-    song: SongCreate,
-    db: DatabaseManager = Depends(get_db)
-):
-    """
-    Create a new song
-    """
+async def create_song(song: SongCreate):
+    """Create a new song."""
     try:
-        return await db.add_song(song)
+        created_song = await db_manager.create_song(song.dict())
+        if not created_song:
+            raise HTTPException(
+                status_code=400,
+                detail="Failed to create song"
+            )
+        return created_song
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        logger.error(f"Error creating song: {str(e)}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error creating song: {str(e)}"
+        )
 
 @router.put("/{song_id}", response_model=Song)
-async def update_song(
-    song_id: str,
-    song_update: SongUpdate,
-    db: DatabaseManager = Depends(get_db)
-):
-    """
-    Update a song
-    """
+async def update_song(song_id: int, song_update: SongUpdate):
+    """Update a song by ID."""
     try:
-        updated_song = await db.update_song(song_id, song_update)
+        updated_song = await db_manager.update_song(song_id, song_update.dict(exclude_unset=True))
         if not updated_song:
-            raise HTTPException(status_code=404, detail="Song not found")
+            raise HTTPException(
+                status_code=404,
+                detail=f"Song {song_id} not found"
+            )
         return updated_song
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        logger.error(f"Error updating song {song_id}: {str(e)}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error updating song: {str(e)}"
+        )
 
 @router.delete("/{song_id}")
-async def delete_song(
-    song_id: str,
-    db: DatabaseManager = Depends(get_db)
-):
-    """
-    Delete a song
-    """
+async def delete_song(song_id: int):
+    """Delete a song by ID."""
     try:
-        success = await db.delete_song(song_id)
-        if not success:
-            raise HTTPException(status_code=404, detail="Song not found")
-        return {"message": "Song deleted successfully"}
+        deleted = await db_manager.delete_song(song_id)
+        if not deleted:
+            raise HTTPException(
+                status_code=404,
+                detail=f"Song {song_id} not found"
+            )
+        return {"message": f"Song {song_id} deleted successfully"}
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        logger.error(f"Error deleting song {song_id}: {str(e)}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error deleting song: {str(e)}"
+        )
 
 @router.get("/search")
 async def search_songs(
@@ -411,7 +421,7 @@ async def search_songs(
     skip: int = Query(0, ge=0),
     limit: int = Query(10, ge=1, le=100)
 ):
-    """Search for songs with optional filters"""
+    """Search for songs with various filters."""
     try:
         songs = await db_manager.search_songs(
             query=query,
@@ -420,12 +430,10 @@ async def search_songs(
             skip=skip,
             limit=limit
         )
-        return {
-            "total": len(songs),
-            "items": songs,
-            "skip": skip,
-            "limit": limit
-        }
+        return {"songs": songs}
     except Exception as e:
         logger.error(f"Error searching songs: {str(e)}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error searching songs: {str(e)}"
+        )

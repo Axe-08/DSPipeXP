@@ -314,7 +314,8 @@ class DatabaseManager:
                     SELECT pg_size_pretty(pg_database_size(current_database())) as size,
                            pg_database_size(current_database()) as bytes
                 """))
-                size_info = await result.fetchone()
+                row = await result.fetchone()
+                size_info = row if row else ('0 bytes', 0)
                 
                 # Get table sizes
                 result = await session.execute(text("""
@@ -331,16 +332,16 @@ class DatabaseManager:
                 table_sizes = await result.fetchall()
                 
                 return {
-                    "total_songs": total_songs,
-                    "songs_with_features": songs_with_features,
-                    "songs_with_lyrics": songs_with_lyrics,
+                    "total_songs": total_songs or 0,
+                    "songs_with_features": songs_with_features or 0,
+                    "songs_with_lyrics": songs_with_lyrics or 0,
                     "database_size": {
                         "pretty": size_info[0],
                         "bytes": size_info[1]
                     },
                     "table_sizes": [
                         {"table": row[0], "size": row[1], "bytes": row[2]}
-                        for row in table_sizes
+                        for row in (table_sizes or [])
                     ],
                     "connection_info": {
                         "url": self.database_url.replace(

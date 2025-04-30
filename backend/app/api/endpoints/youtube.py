@@ -94,11 +94,9 @@ class YouTubeService:
                 'Accept-Language': 'en-us,en;q=0.5',
                 'Sec-Fetch-Mode': 'navigate',
             },
-            # Add cookies handling
-            'cookiesfrombrowser': ('chrome',),  # Use Chrome cookies
-            'cookiefile': '/tmp/youtube.cookies',  # Save cookies to file
-            'mark_watched': False,  # Don't mark videos as watched
             'ignoreerrors': True,
+            'no_check_certificate': True,
+            'no_cache_dir': True,  # Disable cache to avoid permission issues
         })
         
         if download:
