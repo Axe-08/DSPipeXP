@@ -375,7 +375,8 @@ recommender = OptimizedSongRecommender(
     
 # example_song_idx = 767  
 # recommendations, seed_song, seed_sentiment = recommender.get_recommendations(example_song_idx, top_n=5, include_explanation=True)
-recommendations, seed_song, seed_sentiment = recommender.get_recommendations_by_name("shape of you", top_n=5)
+song_name = input("Enter song you want to look for recommendations for: ")
+recommendations, seed_song, seed_sentiment = recommender.get_recommendations_by_name(song_name, top_n=5)
 
 print(f"Recommendations for '{seed_song['track_name']}' by {seed_song['track_artist']}:")
 print(recommendations[['track_name', 'track_artist', 'similarity_score', 'lyrics_similarity', 'audio_similarity']])
