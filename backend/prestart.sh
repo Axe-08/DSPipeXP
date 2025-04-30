@@ -51,24 +51,36 @@ if [ -z "${DATABASE_URL}" ]; then
     exit 1
 fi
 
-# Extract database connection details from URL
+echo "Parsing DATABASE_URL..."
+echo "DATABASE_URL format (sensitive info redacted): ${DATABASE_URL//:[^@]*@/:***@}"
+
+# First try parsing URL with port number
 if [[ $DATABASE_URL =~ ^(postgresql(\+asyncpg)?|postgres)://([^:]+):([^@]+)@([^:]+):([0-9]+)/(.+)$ ]]; then
     export DB_USER="${BASH_REMATCH[3]}"
     export DB_PASSWORD="${BASH_REMATCH[4]}"
     export DB_HOST="${BASH_REMATCH[5]}"
     export DB_PORT="${BASH_REMATCH[6]}"
     export DB_NAME="${BASH_REMATCH[7]}"
-    
-    echo "Successfully parsed DATABASE_URL"
-    echo "Host: $DB_HOST"
-    echo "Port: $DB_PORT"
-    echo "Database: $DB_NAME"
-    echo "User: $DB_USER"
 else
-    echo "Error: Could not parse DATABASE_URL"
-    echo "DATABASE_URL format (sensitive info redacted): ${DATABASE_URL//:[^@]*@/:***@}"
-    exit 1
+    # Try parsing URL without port number
+    if [[ $DATABASE_URL =~ ^(postgresql(\+asyncpg)?|postgres)://([^:]+):([^@]+)@([^/]+)/(.+)$ ]]; then
+        export DB_USER="${BASH_REMATCH[3]}"
+        export DB_PASSWORD="${BASH_REMATCH[4]}"
+        export DB_HOST="${BASH_REMATCH[5]}"
+        export DB_PORT="5432"  # Default PostgreSQL port
+        export DB_NAME="${BASH_REMATCH[6]}"
+    else
+        echo "Error: Could not parse DATABASE_URL"
+        echo "Expected format: postgresql[+asyncpg]://user:password@host[:port]/dbname"
+        exit 1
+    fi
 fi
+
+echo "Successfully parsed DATABASE_URL"
+echo "Host: $DB_HOST"
+echo "Port: $DB_PORT"
+echo "Database: $DB_NAME"
+echo "User: $DB_USER"
 
 # Test database connection
 if ! test_db_connection "$DATABASE_URL"; then
