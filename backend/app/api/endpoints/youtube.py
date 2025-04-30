@@ -79,23 +79,42 @@ class YouTubeService:
     def get_ydl_opts(self, quality: str = "192", download: bool = True) -> dict:
         """Get yt-dlp options with specified quality."""
         opts = self.base_opts.copy()
+        
+        # Add common options to avoid bot detection
+        opts.update({
+            'quiet': True,
+            'no_warnings': True,
+            'extract_flat': True if not download else False,
+            'nocheckcertificate': True,
+            'socket_timeout': 30,
+            'retries': 5,
+            'http_headers': {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+                'Accept-Language': 'en-us,en;q=0.5',
+                'Sec-Fetch-Mode': 'navigate',
+            },
+            # Add cookies handling
+            'cookiesfrombrowser': ('chrome',),  # Use Chrome cookies
+            'cookiefile': '/tmp/youtube.cookies',  # Save cookies to file
+            'mark_watched': False,  # Don't mark videos as watched
+            'ignoreerrors': True,
+        })
+        
         if download:
             opts.update({
                 'format': 'bestaudio/best',
-                'extract_flat': False,
                 'postprocessors': [{
                     'key': 'FFmpegExtractAudio',
                     'preferredcodec': 'mp3',
                     'preferredquality': quality,
                 }],
                 'outtmpl': os.path.join(self.download_path, '%(title)s.%(ext)s'),
-                'restrictfilenames': True,  # Use only ASCII characters in filenames
-                'windowsfilenames': True,   # Ensure filenames are Windows-compatible
-                'ignoreerrors': True,       # Skip on errors
-                'nooverwrites': True,       # Don't overwrite files
-                'retries': 5,              # Retry more times
-                'fragment_retries': 5,     # Retry fragment downloads
-                'skip_unavailable_fragments': True,  # Skip unavailable fragments
+                'restrictfilenames': True,
+                'windowsfilenames': True,
+                'nooverwrites': True,
+                'fragment_retries': 10,
+                'skip_unavailable_fragments': True,
             })
         return opts
 

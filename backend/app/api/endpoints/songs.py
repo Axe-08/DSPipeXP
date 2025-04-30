@@ -402,3 +402,30 @@ async def delete_song(
         return {"message": "Song deleted successfully"}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+@router.get("/search")
+async def search_songs(
+    query: Optional[str] = None,
+    artist: Optional[str] = None,
+    genre: Optional[str] = None,
+    skip: int = Query(0, ge=0),
+    limit: int = Query(10, ge=1, le=100)
+):
+    """Search for songs with optional filters"""
+    try:
+        songs = await db_manager.search_songs(
+            query=query,
+            artist=artist,
+            genre=genre,
+            skip=skip,
+            limit=limit
+        )
+        return {
+            "total": len(songs),
+            "items": songs,
+            "skip": skip,
+            "limit": limit
+        }
+    except Exception as e:
+        logger.error(f"Error searching songs: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))

@@ -4,7 +4,7 @@ from sqlalchemy.pool import QueuePool
 import numpy as np
 import json
 import os
-from typing import Dict, List, Optional, AsyncGenerator, Generator
+from typing import Dict, List, Optional, AsyncGenerator, Generator, Any
 from contextlib import contextmanager
 import pandas as pd
 import logging
@@ -292,6 +292,74 @@ class DatabaseManager:
                 logger.error(f"Error creating song: {e}")
                 await session.rollback()
                 return None
+
+    async def get_stats(self) -> Dict[str, Any]:
+        """Get database statistics"""
+        try:
+            async with self.SessionLocal() as session:
+                # Get total number of songs
+                result = await session.execute(text("SELECT COUNT(*) FROM songs"))
+                total_songs = await result.scalar()
+                
+                # Get number of songs with audio features
+                result = await session.execute(text("SELECT COUNT(*) FROM songs WHERE audio_features IS NOT NULL"))
+                songs_with_features = await result.scalar()
+                
+                # Get number of songs with lyrics
+                result = await session.execute(text("SELECT COUNT(*) FROM songs WHERE lyrics IS NOT NULL"))
+                songs_with_lyrics = await result.scalar()
+                
+                # Get database size
+                result = await session.execute(text("""
+                    SELECT pg_size_pretty(pg_database_size(current_database())) as size,
+                           pg_database_size(current_database()) as bytes
+                """))
+                size_info = await result.fetchone()
+                
+                # Get table sizes
+                result = await session.execute(text("""
+                    SELECT relname as table,
+                           pg_size_pretty(pg_total_relation_size(C.oid)) as size,
+                           pg_total_relation_size(C.oid) as bytes
+                    FROM pg_class C
+                    LEFT JOIN pg_namespace N ON (N.oid = C.relnamespace)
+                    WHERE nspname NOT IN ('pg_catalog', 'information_schema')
+                      AND C.relkind <> 'i'
+                      AND nspname !~ '^pg_toast'
+                    ORDER BY pg_total_relation_size(C.oid) DESC
+                """))
+                table_sizes = await result.fetchall()
+                
+                return {
+                    "total_songs": total_songs,
+                    "songs_with_features": songs_with_features,
+                    "songs_with_lyrics": songs_with_lyrics,
+                    "database_size": {
+                        "pretty": size_info[0],
+                        "bytes": size_info[1]
+                    },
+                    "table_sizes": [
+                        {"table": row[0], "size": row[1], "bytes": row[2]}
+                        for row in table_sizes
+                    ],
+                    "connection_info": {
+                        "url": self.database_url.replace(
+                            self.database_url.split("@")[0], "postgresql://****:****"
+                        ) if "@" in self.database_url else self.database_url
+                    }
+                }
+                
+        except Exception as e:
+            logger.error(f"Error getting database stats: {e}")
+            return {
+                "error": str(e),
+                "total_songs": 0,
+                "songs_with_features": 0,
+                "songs_with_lyrics": 0,
+                "database_size": {"pretty": "0 bytes", "bytes": 0},
+                "table_sizes": [],
+                "connection_info": {"url": "error"}
+            }
 
 # Create global instance with production settings
 db_manager = DatabaseManager("postgresql+asyncpg://postgres:postgres@db:5432/dspipexp")
