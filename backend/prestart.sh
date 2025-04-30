@@ -1,9 +1,11 @@
 #!/bin/bash
 
+# Enable verbose logging
+set -x
+
 # Debug: Print environment variables (redacting sensitive info)
 echo "Checking environment..."
 echo "Raw DATABASE_URL length: ${#DATABASE_URL}"
-echo "DATABASE_URL first 10 chars: ${DATABASE_URL:0:10}..."
 echo "DATABASE_URL format: ${DATABASE_URL//:*/:*****@*****}"
 echo "PORT: $PORT"
 echo "HOST: $HOST"
@@ -29,17 +31,24 @@ echo "DB_HOST (internal): $DB_HOST"
 echo "DB_HOST (external): $DB_EXTERNAL_HOST"
 echo "DB_PORT: $DB_PORT"
 
-# Wait for PostgreSQL with timeout
+# Wait for PostgreSQL with timeout and verbose output
 echo "Waiting for PostgreSQL..."
 timeout=120
 counter=0
 
-# Try different connection methods
-until (PGPASSWORD=GJE1w9Br8L4auWLfSC4jes8fwZQDtbpv psql "${PSQL_URL}" -c '\q' 2>/dev/null) || \
-      (PGPASSWORD=GJE1w9Br8L4auWLfSC4jes8fwZQDtbpv psql "postgres://dspipexp_user@$DB_HOST:$DB_PORT/dspipexp" -c '\q' 2>/dev/null) || \
-      (PGPASSWORD=GJE1w9Br8L4auWLfSC4jes8fwZQDtbpv psql "postgres://dspipexp_user@$DB_EXTERNAL_HOST:$DB_PORT/dspipexp" -c '\q' 2>/dev/null) || \
-      (nc -z -w 5 $DB_HOST $DB_PORT 2>/dev/null) || \
-      (nc -z -w 5 $DB_EXTERNAL_HOST $DB_PORT 2>/dev/null); do
+# Try different connection methods with verbose output
+until (
+    echo "Attempting direct connection with DATABASE_URL..." &&
+    PGPASSWORD=GJE1w9Br8L4auWLfSC4jes8fwZQDtbpv psql "${PSQL_URL}" -c '\dx' 2>&1 ||
+    echo "Attempting connection with internal host..." &&
+    PGPASSWORD=GJE1w9Br8L4auWLfSC4jes8fwZQDtbpv psql "postgres://dspipexp_user@$DB_HOST:$DB_PORT/dspipexp" -c '\dx' 2>&1 ||
+    echo "Attempting connection with external host..." &&
+    PGPASSWORD=GJE1w9Br8L4auWLfSC4jes8fwZQDtbpv psql "postgres://dspipexp_user@$DB_EXTERNAL_HOST:$DB_PORT/dspipexp" -c '\dx' 2>&1 ||
+    echo "Attempting TCP connection to internal host..." &&
+    nc -z -w 5 $DB_HOST $DB_PORT 2>&1 ||
+    echo "Attempting TCP connection to external host..." &&
+    nc -z -w 5 $DB_EXTERNAL_HOST $DB_PORT 2>&1
+); do
     counter=$((counter + 1))
     if [ $counter -gt $timeout ]; then
         echo "ERROR: Timeout waiting for PostgreSQL after ${timeout} seconds"
@@ -50,9 +59,22 @@ until (PGPASSWORD=GJE1w9Br8L4auWLfSC4jes8fwZQDtbpv psql "${PSQL_URL}" -c '\q' 2>
 done
 echo "PostgreSQL started successfully"
 
-# Run migrations
+# Run migrations with verbose output
 echo "Running database migrations..."
-alembic upgrade head
+alembic upgrade head --sql || {
+    echo "ERROR: Migration generation failed"
+    exit 1
+}
+echo "Checking current migration version..."
+alembic current || {
+    echo "ERROR: Could not get current migration version"
+    exit 1
+}
+echo "Migration history:"
+alembic history || {
+    echo "ERROR: Could not get migration history"
+    exit 1
+}
 
 # Create required directories
 echo "Creating storage directories..."
