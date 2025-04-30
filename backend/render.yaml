@@ -1,0 +1,49 @@
+services:
+  - type: web
+    name: dspipexp-api
+    env: docker
+    region: oregon
+    plan: standard
+    healthCheckPath: /api/v1/health
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: dspipexp-db
+          property: connectionString
+      - key: REDIS_URL
+        fromService:
+          name: dspipexp-redis
+          type: redis
+          property: connectionString
+      - key: ENVIRONMENT
+        value: production
+      - key: DEBUG
+        value: false
+      - key: ALLOWED_ORIGINS
+        sync: false
+      - key: SECRET_KEY
+        generateValue: true
+      - key: PORT
+        value: 8000
+      - key: HOST
+        value: 0.0.0.0
+    disk:
+      name: audio-data
+      mountPath: /app/data/audio
+      sizeGB: 10
+    autoDeploy: true
+
+  - type: redis
+    name: dspipexp-redis
+    ipAllowList:
+      - source: 0.0.0.0/0
+        description: everywhere
+    plan: starter
+    maxmemoryPolicy: noeviction
+
+databases:
+  - name: dspipexp-db
+    plan: starter
+    ipAllowList:
+      - source: 0.0.0.0/0
+        description: everywhere 
