@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from typing import Dict
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import text
@@ -63,8 +63,9 @@ def get_redacted_url(url: str | None) -> str:
         logger.error(f"Error redacting URL: {e}")
         return "invalid url format"
 
-@router.get("/health")
-async def health_check(db: AsyncSession = Depends(get_db)):
+@router.get("")  # Changed from "/health" to "" since we're mounting at /api/v1/health
+async def health_check():
+    """Health check endpoint that checks database and Redis connectivity"""
     response = {
         "status": "healthy",
         "database": {
@@ -84,33 +85,35 @@ async def health_check(db: AsyncSession = Depends(get_db)):
     
     # Check database
     try:
-        # Get database version
-        result = await db.execute(text("SELECT version()"))
-        version = result.scalar()
-        
-        # Check if schema is initialized by checking alembic_version table
-        try:
-            result = await db.execute(text("SELECT version_num FROM alembic_version"))
-            migration_version = result.scalar()
-            response["database"].update({
-                "status": "healthy",
-                "version": version,
-                "schema_initialized": True,
-                "migration_version": migration_version
-            })
-        except Exception as e:
-            response["database"].update({
-                "status": "unhealthy",
-                "version": version,
-                "schema_initialized": False,
-                "error": f"Schema not initialized: {str(e)}\n{traceback.format_exc()}"
-            })
-            response["status"] = "unhealthy"
+        # Create a new database session for health check
+        async with AsyncSession(bind=get_db()) as db:
+            # Get database version
+            result = await db.execute(text("SELECT version()"))
+            version = await result.scalar()
             
+            # Check if schema is initialized by checking alembic_version table
+            try:
+                result = await db.execute(text("SELECT version_num FROM alembic_version"))
+                migration_version = await result.scalar()
+                response["database"].update({
+                    "status": "healthy",
+                    "version": version,
+                    "schema_initialized": True,
+                    "migration_version": migration_version
+                })
+            except Exception as e:
+                response["database"].update({
+                    "status": "unhealthy",
+                    "version": version,
+                    "schema_initialized": False,
+                    "error": f"Schema not initialized: {str(e)}"
+                })
+                response["status"] = "unhealthy"
+                
     except Exception as e:
         response["database"].update({
             "status": "unhealthy",
-            "error": f"Database connection failed: {str(e)}\n{traceback.format_exc()}"
+            "error": f"Database connection failed: {str(e)}"
         })
         response["status"] = "unhealthy"
 
@@ -124,7 +127,7 @@ async def health_check(db: AsyncSession = Depends(get_db)):
                 "version": info.get("redis_version", "unknown")
             })
         except Exception as e:
-            error_msg = f"Redis connection failed: {str(e)}\n{traceback.format_exc()}"
+            error_msg = f"Redis connection failed: {str(e)}"
             logger.error(error_msg)
             response["redis"].update({
                 "status": "unhealthy",

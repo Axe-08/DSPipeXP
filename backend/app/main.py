@@ -3,7 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.core.config import settings
 from app.core.logging import setup_logging
 from app.core.tasks import BackgroundTasks
-from app.api import endpoints  # Import the main endpoints module
+from app.api.endpoints import health, songs, youtube, search, recommendations, monitoring
 import logging
 
 logger = logging.getLogger(__name__)
@@ -31,8 +31,23 @@ setup_logging()
 logger.debug("Registering API routes...")
 
 # Core endpoints
-logger.debug("Registering health endpoints...")
-app.include_router(endpoints.router, prefix="/api/v1", tags=["api"])
+logger.debug("Registering health endpoint...")
+app.include_router(health.router, prefix="/api/v1/health", tags=["health"])
+
+logger.debug("Registering monitoring endpoints...")
+app.include_router(monitoring.router, prefix="/api/v1/monitoring", tags=["monitoring"])
+
+logger.debug("Registering song endpoints...")
+app.include_router(songs.router, prefix="/api/v1/songs", tags=["songs"])
+
+logger.debug("Registering YouTube endpoints...")
+app.include_router(youtube.router, prefix="/api/v1/youtube", tags=["youtube"])
+
+logger.debug("Registering search endpoints...")
+app.include_router(search.router, prefix="/api/v1/search", tags=["search"])
+
+logger.debug("Registering recommendation endpoints...")
+app.include_router(recommendations.router, prefix="/api/v1/recommendations", tags=["recommendations"])
 
 # Initialize background tasks
 background_tasks = BackgroundTasks(app)
