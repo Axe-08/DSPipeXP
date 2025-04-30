@@ -13,6 +13,7 @@ RUN apt-get update && apt-get install -y \
     netcat-openbsd \
     python3-dev \
     build-essential \
+    postgresql-client \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy requirements first to leverage Docker cache

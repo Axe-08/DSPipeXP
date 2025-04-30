@@ -1,84 +1,94 @@
 #!/bin/bash
 
-# Enable verbose logging
+# Enable verbose output
 set -x
 
-# Debug: Print environment variables (redacting sensitive info)
-echo "Checking environment..."
-echo "Raw DATABASE_URL length: ${#DATABASE_URL}"
-echo "DATABASE_URL format: ${DATABASE_URL//:*/:*****@*****}"
-echo "PORT: $PORT"
-echo "HOST: $HOST"
+echo "Starting prestart.sh script..."
+
+# Function to convert URL for psql
+convert_url_for_psql() {
+    local url=$1
+    # Convert postgresql+asyncpg:// to postgresql:// for psql
+    url=${url/postgresql+asyncpg:\/\//postgresql:\/\/}
+    # Convert postgres:// to postgresql:// for consistency
+    url=${url/postgres:\/\//postgresql:\/\/}
+    echo "$url"
+}
+
+# Function to test database connection
+test_db_connection() {
+    local url=$1
+    local max_attempts=3
+    local attempt=1
+    local connected=false
+
+    while [ $attempt -le $max_attempts ] && [ "$connected" = false ]; do
+        echo "Attempt $attempt to connect to database..."
+        
+        if PGPASSWORD=$DB_PASSWORD psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" -c '\dx' > /dev/null 2>&1; then
+            echo "Successfully connected to database on attempt $attempt"
+            connected=true
+        else
+            echo "Connection attempt $attempt failed"
+            if [ $attempt -lt $max_attempts ]; then
+                echo "Waiting 5 seconds before next attempt..."
+                sleep 5
+            fi
+        fi
+        attempt=$((attempt + 1))
+    done
+
+    if [ "$connected" = false ]; then
+        echo "Failed to connect to database after $max_attempts attempts"
+        return 1
+    fi
+    return 0
+}
 
 # Check if DATABASE_URL is set
-if [ -z "$DATABASE_URL" ]; then
-    echo "ERROR: DATABASE_URL is not set"
+if [ -z "${DATABASE_URL}" ]; then
+    echo "Error: DATABASE_URL is not set"
     exit 1
 fi
 
-echo "Setting up database connection..."
+# Extract database connection details from URL
+if [[ $DATABASE_URL =~ ^(postgresql(\+asyncpg)?|postgres)://([^:]+):([^@]+)@([^:]+):([0-9]+)/(.+)$ ]]; then
+    export DB_USER="${BASH_REMATCH[3]}"
+    export DB_PASSWORD="${BASH_REMATCH[4]}"
+    export DB_HOST="${BASH_REMATCH[5]}"
+    export DB_PORT="${BASH_REMATCH[6]}"
+    export DB_NAME="${BASH_REMATCH[7]}"
+    
+    echo "Successfully parsed DATABASE_URL"
+    echo "Host: $DB_HOST"
+    echo "Port: $DB_PORT"
+    echo "Database: $DB_NAME"
+    echo "User: $DB_USER"
+else
+    echo "Error: Could not parse DATABASE_URL"
+    echo "DATABASE_URL format (sensitive info redacted): ${DATABASE_URL//:[^@]*@/:***@}"
+    exit 1
+fi
 
-# Extract host from DATABASE_URL for logging
-DB_HOST="dpg-d08v2s49c44c73a9qeqg-a"
-DB_PORT="5432"
-DB_EXTERNAL_HOST="dpg-d08v2s49c44c73a9qeqg-a.oregon-postgres.render.com"
+# Test database connection
+if ! test_db_connection "$DATABASE_URL"; then
+    echo "Error: Could not connect to database"
+    exit 1
+fi
 
-# Convert postgresql:// to postgres:// for psql
-PSQL_URL=$(echo "$DATABASE_URL" | sed 's/^postgresql:/postgres:/')
-
-echo "Using database connection info:"
-echo "DB_HOST (internal): $DB_HOST"
-echo "DB_HOST (external): $DB_EXTERNAL_HOST"
-echo "DB_PORT: $DB_PORT"
-
-# Wait for PostgreSQL with timeout and verbose output
-echo "Waiting for PostgreSQL..."
-timeout=120
-counter=0
-
-# Try different connection methods with verbose output
-until (
-    echo "Attempting direct connection with DATABASE_URL..." &&
-    PGPASSWORD=GJE1w9Br8L4auWLfSC4jes8fwZQDtbpv psql "${PSQL_URL}" -c '\dx' 2>&1 ||
-    echo "Attempting connection with internal host..." &&
-    PGPASSWORD=GJE1w9Br8L4auWLfSC4jes8fwZQDtbpv psql "postgres://dspipexp_user@$DB_HOST:$DB_PORT/dspipexp" -c '\dx' 2>&1 ||
-    echo "Attempting connection with external host..." &&
-    PGPASSWORD=GJE1w9Br8L4auWLfSC4jes8fwZQDtbpv psql "postgres://dspipexp_user@$DB_EXTERNAL_HOST:$DB_PORT/dspipexp" -c '\dx' 2>&1 ||
-    echo "Attempting TCP connection to internal host..." &&
-    nc -z -w 5 $DB_HOST $DB_PORT 2>&1 ||
-    echo "Attempting TCP connection to external host..." &&
-    nc -z -w 5 $DB_EXTERNAL_HOST $DB_PORT 2>&1
-); do
-    counter=$((counter + 1))
-    if [ $counter -gt $timeout ]; then
-        echo "ERROR: Timeout waiting for PostgreSQL after ${timeout} seconds"
-        exit 1
-    fi
-    echo "Waiting for PostgreSQL... ($counter/$timeout)"
-    sleep 1
-done
-echo "PostgreSQL started successfully"
-
-# Run migrations with verbose output
 echo "Running database migrations..."
-alembic upgrade head --sql || {
-    echo "ERROR: Migration generation failed"
+# Run migrations
+if ! alembic upgrade head; then
+    echo "Error: Database migration failed"
     exit 1
-}
-echo "Checking current migration version..."
-alembic current || {
-    echo "ERROR: Could not get current migration version"
-    exit 1
-}
+fi
+
+echo "Verifying migrations..."
+# Verify migrations
+echo "Current migration version:"
+alembic current
+
 echo "Migration history:"
-alembic history || {
-    echo "ERROR: Could not get migration history"
-    exit 1
-}
+alembic history --verbose
 
-# Create required directories
-echo "Creating storage directories..."
-mkdir -p /tmp/audio /tmp/cache
-chmod 777 /tmp/audio /tmp/cache
-
-echo "Prestart tasks completed successfully" 
+echo "Prestart script completed successfully" 

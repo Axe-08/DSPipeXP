@@ -45,10 +45,17 @@ class Song(Base):
     is_original = Column(Boolean, default=False)
     added_date = Column(DateTime, server_default=text('now()'))
 
+def get_async_database_url() -> str:
+    """Convert DATABASE_URL to async format if needed"""
+    url = settings.DATABASE_URL
+    if url.startswith('postgresql://'):
+        url = url.replace('postgresql://', 'postgresql+asyncpg://', 1)
+    return url
+
 class DatabaseManager:
     def __init__(self, database_url: str):
-        self.database_url = database_url
-        self.engine = create_async_engine(database_url)
+        self.database_url = get_async_database_url()
+        self.engine = create_async_engine(self.database_url)
         self.SessionLocal = async_sessionmaker(self.engine, expire_on_commit=False)
         self.vector_store = VectorStore()
 

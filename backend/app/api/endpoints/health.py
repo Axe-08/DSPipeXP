@@ -3,7 +3,7 @@ from typing import Dict
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import text
 from app.core.database import get_db
-import redis.asyncio as redis
+from app.core.redis import get_redis
 from app.core.config import settings
 import logging
 import traceback
@@ -37,7 +37,7 @@ async def check_db_connection(db: AsyncSession) -> tuple[bool, str]:
 async def check_redis_connection() -> tuple[bool, str]:
     """Check if Redis connection is alive"""
     try:
-        redis_client = redis.from_url(settings.REDIS_URL)
+        redis_client = await get_redis()
         await redis_client.ping()
         info = await redis_client.info()
         logger.info(f"Redis info: {info.get('redis_version')}")
@@ -47,25 +47,69 @@ async def check_redis_connection() -> tuple[bool, str]:
         logger.error(error_details)
         return False, error_details
 
-@router.get("/health", response_model=Dict[str, str])
+@router.get("/health")
 async def health_check(db: AsyncSession = Depends(get_db)):
-    """
-    Health check endpoint that verifies:
-    - API is responding
-    - Database connection is alive
-    - Redis connection is alive
-    """
-    db_healthy, db_details = await check_db_connection(db)
-    redis_healthy, redis_details = await check_redis_connection()
+    response = {
+        "status": "healthy",
+        "database": {
+            "status": "unknown",
+            "version": None,
+            "schema_initialized": False,
+            "migration_version": None,
+            "error": None
+        },
+        "redis": {
+            "status": "unknown",
+            "version": None,
+            "error": None
+        }
+    }
     
-    logger.info(f"Health check - DB: {db_healthy}, Redis: {redis_healthy}")
-    
-    overall_status = "healthy" if all([db_healthy, redis_healthy]) else "unhealthy"
-    
-    return {
-        "status": overall_status,
-        "database": "healthy" if db_healthy else "unhealthy",
-        "database_details": db_details,
-        "redis": "healthy" if redis_healthy else "unhealthy",
-        "redis_details": redis_details
-    } 
+    # Check database
+    try:
+        # Get database version
+        result = await db.execute(text("SELECT version()"))
+        version = result.scalar()
+        
+        # Check if schema is initialized by checking alembic_version table
+        try:
+            result = await db.execute(text("SELECT version_num FROM alembic_version"))
+            migration_version = result.scalar()
+            response["database"].update({
+                "status": "healthy",
+                "version": version,
+                "schema_initialized": True,
+                "migration_version": migration_version
+            })
+        except Exception as e:
+            response["database"].update({
+                "status": "unhealthy",
+                "version": version,
+                "schema_initialized": False,
+                "error": f"Schema not initialized: {str(e)}\n{traceback.format_exc()}"
+            })
+            response["status"] = "unhealthy"
+            
+    except Exception as e:
+        response["database"].update({
+            "status": "unhealthy",
+            "error": f"Database connection failed: {str(e)}\n{traceback.format_exc()}"
+        })
+        response["status"] = "unhealthy"
+
+    # Check Redis
+    try:
+        redis = await get_redis()
+        info = await redis.info()
+        response["redis"].update({
+            "status": "healthy",
+            "version": info["redis_version"]
+        })
+    except Exception as e:
+        response["redis"].update({
+            "status": "unhealthy",
+            "error": f"Redis connection failed: {str(e)}\n{traceback.format_exc()}"
+        })
+        response["status"] = "unhealthy"
+
+    return response 
