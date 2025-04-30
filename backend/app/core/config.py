@@ -28,6 +28,7 @@ class Settings(BaseSettings):
     
     # CORS Settings
     _CORS_ORIGINS: str = "*"  # Allow all origins in development
+    ALLOWED_ORIGINS: str | None = None  # Alternative env var name
     _CORS_METHODS: str = "GET,POST,PUT,DELETE,OPTIONS"
     _CORS_HEADERS: str = "Content-Type,Authorization,X-API-Key"
     
@@ -60,7 +61,9 @@ class Settings(BaseSettings):
     
     @property
     def CORS_ORIGINS(self) -> List[str]:
-        return parse_comma_separated_list(self._CORS_ORIGINS)
+        # First check ALLOWED_ORIGINS, then fall back to _CORS_ORIGINS
+        origins = self.ALLOWED_ORIGINS if self.ALLOWED_ORIGINS is not None else self._CORS_ORIGINS
+        return parse_comma_separated_list(origins)
 
     @property
     def CORS_METHODS(self) -> List[str]:
