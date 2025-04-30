@@ -5,6 +5,8 @@ import asyncio
 from typing import Dict, List, Any
 from fastapi import FastAPI
 from ..core.config import settings
+from sqlalchemy.sql import text
+from ..core.database import db_manager
 
 logger = logging.getLogger(__name__)
 
@@ -103,6 +105,139 @@ class EndpointTester:
 
     async def close(self):
         await self.client.aclose()
+
+async def verify_database_health() -> bool:
+    """Verify database health by checking song count, indexes, and functionality."""
+    try:
+        logger.info("Starting comprehensive database health verification...")
+        
+        async with db_manager.SessionLocal() as session:
+            # Check database connection
+            try:
+                await session.execute(text("SELECT 1"))
+                logger.info("Database connection successful")
+            except Exception as e:
+                logger.error(f"Database connection failed: {e}")
+                return False
+
+            # Check if pg_trgm extension is installed
+            result = await session.execute(text(
+                "SELECT * FROM pg_extension WHERE extname = 'pg_trgm'"
+            ))
+            if not await result.first():
+                logger.error("pg_trgm extension not found - fuzzy search will not work")
+                return False
+            logger.info("pg_trgm extension verified")
+
+            # Check if required indexes exist
+            result = await session.execute(text("""
+                SELECT indexname, indexdef 
+                FROM pg_indexes 
+                WHERE indexname IN (
+                    'idx_song_track_name_trgm',
+                    'idx_song_artist_trgm'
+                )
+            """))
+            indexes = await result.fetchall()
+            if len(indexes) != 2:
+                logger.error("Missing required trigram indexes")
+                return False
+            logger.info("Required indexes verified")
+
+            # Get total song count
+            result = await session.execute(text("SELECT COUNT(*) FROM songs"))
+            total_songs = await result.scalar()
+            logger.info(f"Total songs in database: {total_songs}")
+            
+            if total_songs < 18000:
+                logger.error(f"Database appears to be missing data. Expected ~18000 songs, found {total_songs}")
+                return False
+
+            # Verify fuzzy search functionality
+            try:
+                result = await session.execute(text("""
+                    SELECT track_name, track_artist, similarity(track_name, 'test')
+                    FROM songs
+                    WHERE similarity(track_name, 'test') > 0.3
+                    LIMIT 1
+                """))
+                await result.first()
+                logger.info("Fuzzy search functionality verified")
+            except Exception as e:
+                logger.error(f"Fuzzy search test failed: {e}")
+                return False
+
+            # Check data integrity
+            result = await session.execute(text("""
+                SELECT COUNT(*) 
+                FROM songs 
+                WHERE track_name IS NULL 
+                   OR track_artist IS NULL 
+                   OR track_name = '' 
+                   OR track_artist = ''
+            """))
+            invalid_records = await result.scalar()
+            if invalid_records > 0:
+                logger.error(f"Found {invalid_records} records with missing required data")
+                return False
+            logger.info("Data integrity verified")
+
+            # Check if audio features are present and valid JSON
+            result = await session.execute(text("""
+                SELECT COUNT(*) 
+                FROM songs 
+                WHERE audio_features IS NOT NULL 
+                  AND audio_features::jsonb IS NOT NULL
+            """))
+            songs_with_features = await result.scalar()
+            logger.info(f"Songs with valid audio features: {songs_with_features}")
+
+            # Check database size and growth
+            result = await session.execute(text("""
+                SELECT pg_size_pretty(pg_database_size(current_database())),
+                       pg_database_size(current_database())
+            """))
+            db_size = await result.first()
+            logger.info(f"Database size: {db_size[0]} ({db_size[1]} bytes)")
+
+            # Check table bloat
+            result = await session.execute(text("""
+                SELECT schemaname, tablename, pg_size_pretty(size) as size
+                FROM (
+                    SELECT schemaname, tablename, pg_total_relation_size(full_table_name) as size
+                    FROM (
+                        SELECT schemaname, tablename, quote_ident(schemaname) || '.' || quote_ident(tablename) as full_table_name
+                        FROM pg_tables
+                        WHERE schemaname NOT IN ('pg_catalog', 'information_schema')
+                    ) as tables
+                ) as sizes
+                ORDER BY size DESC
+                LIMIT 5
+            """))
+            table_sizes = await result.fetchall()
+            for table in table_sizes:
+                logger.info(f"Table size - {table[0]}.{table[1]}: {table[2]}")
+
+            logger.info("Database health check completed successfully")
+            return True
+            
+    except Exception as e:
+        logger.error(f"Database health check failed: {str(e)}")
+        return False
+
+async def run_startup_tests():
+    """Run all startup tests including database verification."""
+    logger.info("Starting startup tests...")
+    
+    # First verify database health
+    db_healthy = await verify_database_health()
+    if not db_healthy:
+        logger.error("Database health check failed - this may affect endpoint functionality")
+    else:
+        logger.info("Database health check passed successfully")
+    
+    # Then run endpoint tests
+    await run_endpoint_tests()
 
 async def run_startup_tests(app: FastAPI):
     """Run all endpoint tests after startup"""

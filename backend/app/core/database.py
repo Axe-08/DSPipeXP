@@ -1,4 +1,4 @@
-from sqlalchemy import create_engine, Column, Integer, String, Float, JSON, Boolean, DateTime, text, MetaData
+from sqlalchemy import create_engine, Column, Integer, String, Float, JSON, Boolean, DateTime, text, MetaData, func, or_, case, else_
 from sqlalchemy.orm import sessionmaker, declarative_base
 from sqlalchemy.pool import QueuePool
 import numpy as np
@@ -154,28 +154,99 @@ class DatabaseManager:
             logger.error(f"Error finding similar songs: {e}")
             return []
 
-    async def search_songs(self, query: Optional[str] = None, artist: Optional[str] = None,
-                    genre: Optional[str] = None, mood: Optional[str] = None,
-                    skip: int = 0, limit: int = 10) -> List[Song]:
-        """Search for songs with various filters."""
-        async with self.SessionLocal() as session:
-            try:
-                stmt = select(Song)
+    async def search_songs(
+        self,
+        query: Optional[str] = None,
+        artist: Optional[str] = None,
+        genre: Optional[str] = None,
+        mood: Optional[str] = None,
+        offset: int = 0,
+        limit: int = 50
+    ) -> List[Song]:
+        """
+        Search for songs using fuzzy matching and multiple criteria.
+        
+        Args:
+            query: Text to search in track names
+            artist: Artist name to search for
+            genre: Exact genre to match
+            mood: Exact mood to match
+            offset: Number of results to skip (for pagination)
+            limit: Maximum number of results to return
+            
+        Returns:
+            List of matching Song objects ordered by relevance
+            
+        Raises:
+            DatabaseError: If there's an error executing the query
+        """
+        session = self.SessionLocal()
+        try:
+            # Start with base query
+            base_query = session.query(Song)
+            conditions = []
+            
+            # Build search conditions
+            if query:
+                # Fuzzy match on track name with similarity score
+                name_similarity = func.similarity(Song.track_name, query)
+                conditions.append(name_similarity >= 0.3)  # Minimum similarity threshold
                 
-                if query:
-                    stmt = stmt.where(Song.track_name.ilike(f"%{query}%"))
-                if artist:
-                    stmt = stmt.where(Song.track_artist.ilike(f"%{artist}%"))
-                if genre:
-                    stmt = stmt.where(Song.playlist_genre.ilike(f"%{genre}%"))
-                    
-                stmt = stmt.offset(skip).limit(limit)
+                # Add weighted score for ordering
+                base_query = base_query.add_columns(
+                    (case(
+                        [(name_similarity >= 0.8, 3.0),  # High similarity
+                         (name_similarity >= 0.5, 2.0)],  # Medium similarity
+                        else_=name_similarity  # Lower similarity
+                    )).label('relevance_score')
+                )
+            
+            if artist:
+                # Fuzzy match on artist name
+                artist_similarity = func.similarity(Song.track_artist, artist)
+                conditions.append(artist_similarity >= 0.3)
                 
-                result = await session.execute(stmt)
-                return result.scalars().all()
-            except Exception as e:
-                logger.error(f"Error searching songs: {e}")
-                return []
+                if not query:  # Only add score if not already added
+                    base_query = base_query.add_columns(
+                        (case(
+                            [(artist_similarity >= 0.8, 2.0),
+                             (artist_similarity >= 0.5, 1.5)],
+                            else_=artist_similarity
+                        )).label('relevance_score')
+                    )
+            
+            # Exact matches for genre and mood
+            if genre:
+                conditions.append(Song.playlist_genre == genre)
+            if mood:
+                conditions.append(Song.mood == mood)
+            
+            # Apply conditions if any exist
+            if conditions:
+                base_query = base_query.filter(or_(*conditions))
+            
+            # Order by relevance score if text search was performed
+            if query or artist:
+                base_query = base_query.order_by(text('relevance_score DESC NULLS LAST'))
+            else:
+                base_query = base_query.order_by(Song.track_name)
+            
+            # Apply pagination
+            results = base_query.offset(offset).limit(limit).all()
+            
+            # Extract Song objects from results (ignoring relevance scores)
+            songs = [result[0] if isinstance(result, tuple) else result for result in results]
+            
+            return songs
+            
+        except SQLAlchemyError as e:
+            logger.error(f"Database error during song search: {str(e)}")
+            raise DatabaseError(f"Error searching songs: {str(e)}")
+        except Exception as e:
+            logger.error(f"Unexpected error during song search: {str(e)}")
+            raise
+        finally:
+            session.close()
 
     async def get_active_file_paths(self) -> List[str]:
         """Get list of active file paths from database"""

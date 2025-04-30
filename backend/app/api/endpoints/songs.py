@@ -11,6 +11,8 @@ from ...core.database import db_manager, DatabaseManager, get_db
 from ...models.models import Song, SongCreate, SongBase, SongUpdate
 import tempfile
 import json
+from sqlalchemy import select, func
+from sqlalchemy.ext.asyncio import AsyncSession
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
@@ -418,22 +420,83 @@ async def search_songs(
     query: Optional[str] = None,
     artist: Optional[str] = None,
     genre: Optional[str] = None,
+    mood: Optional[str] = None,
     skip: int = Query(0, ge=0),
-    limit: int = Query(10, ge=1, le=100)
+    limit: int = Query(10, ge=1, le=100),
+    db: AsyncSession = Depends(get_db)
 ):
     """Search for songs with various filters."""
     try:
-        songs = await db_manager.search_songs(
-            query=query,
-            artist=artist,
-            genre=genre,
-            skip=skip,
-            limit=limit
-        )
-        return {"songs": songs}
+        logger.info(f"Searching songs with params: query={query}, artist={artist}, genre={genre}, mood={mood}, skip={skip}, limit={limit}")
+        
+        # Validate at least one search parameter is provided
+        if not any([query, artist, genre, mood]):
+            logger.warning("No search parameters provided")
+            return {"songs": [], "total": 0, "message": "At least one search parameter is required"}
+        
+        # Build base query
+        stmt = select(Song)
+        
+        # Add filters
+        if query:
+            stmt = stmt.where(Song.track_name.ilike(f"%{query}%"))
+        if artist:
+            stmt = stmt.where(Song.track_artist.ilike(f"%{artist}%"))
+        if genre:
+            stmt = stmt.where(Song.playlist_genre.ilike(f"%{genre}%"))
+        if mood and hasattr(Song, 'sentiment_features'):
+            # Add mood-based filtering if sentiment features exist
+            stmt = stmt.where(Song.sentiment_features.isnot(None))
+            
+        # Get total count
+        count_stmt = select(func.count()).select_from(stmt.subquery())
+        total = await db.execute(count_stmt)
+        total_count = await total.scalar()
+        
+        # Add pagination
+        stmt = stmt.offset(skip).limit(limit)
+        
+        # Execute query
+        result = await db.execute(stmt)
+        songs = result.scalars().all()
+        
+        logger.info(f"Found {total_count} total matches, returning {len(songs)} songs")
+        
+        # Parse JSON fields for each song
+        parsed_songs = []
+        for song in songs:
+            song_dict = {
+                "id": song.id,
+                "track_name": song.track_name,
+                "track_artist": song.track_artist,
+                "track_album_name": song.track_album_name,
+                "playlist_genre": song.playlist_genre,
+                "youtube_url": song.youtube_url,
+                "added_date": song.added_date.isoformat() if song.added_date else None
+            }
+            
+            # Parse JSON fields if they exist
+            if song.audio_features:
+                try:
+                    song_dict["audio_features"] = json.loads(song.audio_features) if isinstance(song.audio_features, str) else song.audio_features
+                except json.JSONDecodeError:
+                    logger.warning(f"Failed to parse audio_features for song {song.id}")
+                    
+            parsed_songs.append(song_dict)
+        
+        return {
+            "songs": parsed_songs,
+            "total": total_count,
+            "skip": skip,
+            "limit": limit
+        }
+        
     except Exception as e:
-        logger.error(f"Error searching songs: {str(e)}")
+        logger.error(f"Error searching songs: {str(e)}", exc_info=True)
         raise HTTPException(
             status_code=500,
-            detail=f"Error searching songs: {str(e)}"
+            detail={
+                "message": "Error searching songs",
+                "error": str(e)
+            }
         )

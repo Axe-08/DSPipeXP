@@ -9,6 +9,7 @@ import json
 import os
 from pydantic import BaseModel, Field
 from ...services.lyrics_service import lyrics_service
+import logging
 
 router = APIRouter()
 
@@ -46,6 +47,26 @@ async def search_songs(
     Universal search endpoint that can search by any combination of parameters
     """
     try:
+        # Validate at least one search parameter is provided
+        if not any([query, artist, genre, mood]):
+            raise HTTPException(
+                status_code=400,
+                detail="At least one search parameter (query, artist, genre, or mood) is required"
+            )
+
+        # Validate input lengths
+        for param_name, param_value in [
+            ("query", query),
+            ("artist", artist),
+            ("genre", genre),
+            ("mood", mood)
+        ]:
+            if param_value and len(param_value) < 2:
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"{param_name} must be at least 2 characters long"
+                )
+
         songs = await db_manager.search_songs(
             query=query,
             artist=artist,
@@ -54,11 +75,23 @@ async def search_songs(
             skip=skip,
             limit=limit
         )
+        
         if not songs:
-            raise HTTPException(status_code=404, detail="No songs found")
+            raise HTTPException(
+                status_code=404,
+                detail="No songs found matching the search criteria"
+            )
+            
         return [parse_json_fields(song) for song in songs]
+        
+    except HTTPException:
+        raise
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        logger.error(f"Error in search_songs: {str(e)}")
+        raise HTTPException(
+            status_code=500,
+            detail="An error occurred while searching for songs"
+        )
 
 @router.get("/by-name/{name}", response_model=SearchResponse)
 async def search_by_name(name: str, rec_limit: int = 5):
