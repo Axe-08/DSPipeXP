@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends
 from typing import Dict
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import text
 from app.core.database import get_db
 import redis.asyncio as redis
 from app.core.config import settings
@@ -15,12 +16,14 @@ async def check_db_connection(db: AsyncSession) -> tuple[bool, str]:
     """Check if database connection is alive"""
     try:
         # Try to get database version to ensure connectivity
-        result = await db.execute("SELECT version()")
+        result = await db.execute(text("SELECT version()"))
         version = await result.scalar()
         logger.info(f"Database version: {version}")
         
         # Check if our tables exist
-        result = await db.execute("SELECT EXISTS (SELECT FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'songs')")
+        result = await db.execute(
+            text("SELECT EXISTS (SELECT FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'songs')")
+        )
         tables_exist = await result.scalar()
         if not tables_exist:
             return False, "Database schema not initialized - tables missing"
