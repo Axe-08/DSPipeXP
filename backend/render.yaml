@@ -5,6 +5,8 @@ services:
     region: oregon
     plan: free
     healthCheckPath: /api/v1/health
+    buildCommand: docker build -t dspipexp-api .
+    startCommand: docker run -p $PORT:10000 -e DATABASE_URL=$DATABASE_URL -e REDIS_URL=$REDIS_URL -e PORT=10000 dspipexp-api
     envVars:
       - key: DATABASE_URL
         fromDatabase:
