@@ -10,7 +10,7 @@ RUN apt-get update && apt-get install -y \
     libpq-dev \
     ffmpeg \
     curl \
-    netcat \
+    netcat-openbsd \
     python3-dev \
     build-essential \
     && rm -rf /var/lib/apt/lists/*
