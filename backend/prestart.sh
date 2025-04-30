@@ -16,19 +16,26 @@ fi
 
 echo "Setting up database connection..."
 
-# Extract host and port from DATABASE_URL for nc check
+# Extract host from DATABASE_URL for logging
 DB_HOST="dpg-d08v2s49c44c73a9qeqg-a"
 DB_PORT="5432"
+DB_EXTERNAL_HOST="dpg-d08v2s49c44c73a9qeqg-a.oregon-postgres.render.com"
 
 echo "Using database connection info:"
-echo "DB_HOST: $DB_HOST"
+echo "DB_HOST (internal): $DB_HOST"
+echo "DB_HOST (external): $DB_EXTERNAL_HOST"
 echo "DB_PORT: $DB_PORT"
 
 # Wait for PostgreSQL with timeout
-echo "Waiting for PostgreSQL at $DB_HOST:$DB_PORT..."
+echo "Waiting for PostgreSQL..."
 timeout=120
 counter=0
-until PGPASSWORD=${DATABASE_URL#*:*:} psql "${DATABASE_URL}" -c '\q' >/dev/null 2>&1; do
+
+# Try different connection methods
+until (PGPASSWORD=GJE1w9Br8L4auWLfSC4jes8fwZQDtbpv psql "postgresql://dspipexp_user@$DB_HOST:$DB_PORT/dspipexp" -c '\q' 2>/dev/null) || \
+      (PGPASSWORD=GJE1w9Br8L4auWLfSC4jes8fwZQDtbpv psql "postgresql://dspipexp_user@$DB_EXTERNAL_HOST:$DB_PORT/dspipexp" -c '\q' 2>/dev/null) || \
+      (nc -z -w 5 $DB_HOST $DB_PORT 2>/dev/null) || \
+      (nc -z -w 5 $DB_EXTERNAL_HOST $DB_PORT 2>/dev/null); do
     counter=$((counter + 1))
     if [ $counter -gt $timeout ]; then
         echo "ERROR: Timeout waiting for PostgreSQL after ${timeout} seconds"

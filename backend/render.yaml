@@ -6,7 +6,7 @@ services:
     plan: free
     healthCheckPath: /api/v1/health
     buildCommand: docker build -t dspipexp-api .
-    startCommand: docker run -p $PORT:10000 -e DATABASE_URL=postgresql://dspipexp_user:GJE1w9Br8L4auWLfSC4jes8fwZQDtbpv@dpg-d08v2s49c44c73a9qeqg-a.oregon-postgres.render.com/dspipexp -e REDIS_URL=$REDIS_URL -e PORT=10000 dspipexp-api
+    startCommand: docker run -p 10000:10000 -e DATABASE_URL=postgresql://dspipexp_user:GJE1w9Br8L4auWLfSC4jes8fwZQDtbpv@dpg-d08v2s49c44c73a9qeqg-a/dspipexp -e REDIS_URL=$REDIS_URL -e PORT=10000 dspipexp-api
     envVars:
       - key: REDIS_URL
         fromService:
