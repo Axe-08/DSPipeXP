@@ -115,7 +115,10 @@ async def verify_database_health() -> bool:
             # Check database connection
             try:
                 result = await session.execute(text("SELECT 1"))
-                await result.scalar()
+                value = await result.scalar()
+                if value != 1:
+                    logger.error("Database connection check returned unexpected value")
+                    return False
                 logger.info("Database connection successful")
             except Exception as e:
                 logger.error(f"Database connection failed: {e}")
@@ -123,25 +126,25 @@ async def verify_database_health() -> bool:
 
             # Check if pg_trgm extension is installed
             result = await session.execute(text(
-                "SELECT * FROM pg_extension WHERE extname = 'pg_trgm'"
+                "SELECT EXISTS (SELECT 1 FROM pg_extension WHERE extname = 'pg_trgm')"
             ))
-            row = await result.first()
-            if not row:
+            has_trgm = await result.scalar()
+            if not has_trgm:
                 logger.error("pg_trgm extension not found - fuzzy search will not work")
                 return False
             logger.info("pg_trgm extension verified")
 
             # Check if required indexes exist
             result = await session.execute(text("""
-                SELECT indexname, indexdef 
+                SELECT COUNT(*) 
                 FROM pg_indexes 
                 WHERE indexname IN (
                     'idx_song_track_name_trgm',
                     'idx_song_artist_trgm'
                 )
             """))
-            indexes = await result.fetchall()
-            if len(indexes) != 2:
+            index_count = await result.scalar()
+            if index_count != 2:
                 logger.error("Missing required trigram indexes")
                 return False
             logger.info("Required indexes verified")
@@ -157,13 +160,15 @@ async def verify_database_health() -> bool:
             # Verify fuzzy search functionality
             try:
                 result = await session.execute(text("""
-                    SELECT track_name, track_artist, similarity(track_name, 'test')
-                    FROM songs
-                    WHERE similarity(track_name, 'test') > 0.3
-                    LIMIT 1
+                    SELECT EXISTS (
+                        SELECT 1 
+                        FROM songs 
+                        WHERE similarity(track_name, 'test') > 0.3
+                        LIMIT 1
+                    )
                 """))
-                row = await result.first()
-                if row:
+                has_fuzzy_results = await result.scalar()
+                if has_fuzzy_results:
                     logger.info("Fuzzy search functionality verified")
                 else:
                     logger.warning("No fuzzy search results found, but functionality appears to work")
@@ -195,13 +200,12 @@ async def verify_database_health() -> bool:
             songs_with_features = await result.scalar()
             logger.info(f"Songs with valid audio features: {songs_with_features}")
 
-            # Check database size and growth
+            # Check database size
             result = await session.execute(text("""
-                SELECT pg_size_pretty(pg_database_size(current_database())),
-                       pg_database_size(current_database())
+                SELECT pg_size_pretty(pg_database_size(current_database()))
             """))
-            db_size = await result.first()
-            logger.info(f"Database size: {db_size[0] if db_size else 'unknown'}")
+            db_size = await result.scalar()
+            logger.info(f"Database size: {db_size if db_size else 'unknown'}")
 
             return True
 
