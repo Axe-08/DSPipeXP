@@ -23,6 +23,9 @@ logger = logging.getLogger(__name__)
 # Create Base class for SQLAlchemy models
 Base = declarative_base()
 
+class DatabaseError(Exception):
+    pass
+
 class Song(Base):
     __tablename__ = "songs"
     
@@ -92,68 +95,6 @@ class DatabaseManager:
             logger.error(f"Error populating vector store: {e}")
             raise
 
-    async def get_songs(self, skip: int = 0, limit: int = 10) -> List[Song]:
-        """Get a list of songs with pagination."""
-        async with self.SessionLocal() as session:
-            try:
-                query = select(Song).order_by(desc(Song.added_date)).offset(skip).limit(limit)
-                result = await session.execute(query)
-                songs = result.scalars().all()
-                
-                # Parse JSON fields
-                for song in songs:
-                    if song.audio_features and isinstance(song.audio_features, str):
-                        song.audio_features = json.loads(song.audio_features)
-                    if song.word2vec_features and isinstance(song.word2vec_features, str):
-                        song.word2vec_features = json.loads(song.word2vec_features)
-                    if song.sentiment_features and isinstance(song.sentiment_features, str):
-                        song.sentiment_features = json.loads(song.sentiment_features)
-                    if song.topic_features and isinstance(song.topic_features, str):
-                        song.topic_features = json.loads(song.topic_features)
-                
-                return songs
-            except Exception as e:
-                logger.error(f"Error getting songs: {e}")
-                return []
-
-    async def get_song(self, song_id: int) -> Optional[Song]:
-        """Get a song by ID."""
-        async with self.SessionLocal() as session:
-            try:
-                query = select(Song).where(Song.id == song_id)
-                result = await session.execute(query)
-                song = result.scalar_one_or_none()
-                
-                if song and song.audio_features:
-                    song.audio_features = json.loads(song.audio_features) if isinstance(song.audio_features, str) else song.audio_features
-                
-                return song
-            except Exception as e:
-                logger.error(f"Error getting song {song_id}: {e}")
-                return None
-
-    async def get_similar_songs(self, song_id: int, limit: int = 5) -> List[Song]:
-        """Get similar songs based on audio features."""
-        try:
-            song = await self.get_song(song_id)
-            if not song or not song.audio_features:
-                return []
-
-            features = song.audio_features
-            similar_ids = self.vector_store.find_similar_songs(features, k=limit)
-            
-            if not similar_ids:
-                return []
-            
-            async with self.SessionLocal() as session:
-                query = select(Song).where(Song.id.in_(similar_ids))
-                result = await session.execute(query)
-                return result.scalars().all()
-
-        except Exception as e:
-            logger.error(f"Error finding similar songs: {e}")
-            return []
-
     async def search_songs(
         self,
         query: Optional[str] = None,
@@ -163,284 +104,73 @@ class DatabaseManager:
         offset: int = 0,
         limit: int = 50
     ) -> List[Song]:
-        """
-        Search for songs using fuzzy matching and multiple criteria.
-        
-        Args:
-            query: Text to search in track names
-            artist: Artist name to search for
-            genre: Exact genre to match
-            mood: Exact mood to match
-            offset: Number of results to skip (for pagination)
-            limit: Maximum number of results to return
-            
-        Returns:
-            List of matching Song objects ordered by relevance
-            
-        Raises:
-            DatabaseError: If there's an error executing the query
-        """
-        session = self.SessionLocal()
-        try:
-            # Start with base query
-            base_query = session.query(Song)
-            conditions = []
-            
-            # Build search conditions
-            if query:
-                # Fuzzy match on track name with similarity score
-                name_similarity = func.similarity(Song.track_name, query)
-                conditions.append(name_similarity >= 0.3)  # Minimum similarity threshold
+        """Search for songs using fuzzy matching and multiple criteria."""
+        async with self.SessionLocal() as session:
+            try:
+                # Start with base query
+                base_query = select(Song)
+                conditions = []
                 
-                # Add weighted score for ordering
-                base_query = base_query.add_columns(
-                    (case(
-                        [(name_similarity >= 0.8, 3.0),  # High similarity
-                         (name_similarity >= 0.5, 2.0)],  # Medium similarity
-                        else_=name_similarity  # Lower similarity
-                    )).label('relevance_score')
-                )
-            
-                if artist:
-                # Fuzzy match on artist name
-                artist_similarity = func.similarity(Song.track_artist, artist)
-                conditions.append(artist_similarity >= 0.3)
-                
-                if not query:  # Only add score if not already added
+                # Build search conditions
+                if query:
+                    # Fuzzy match on track name with similarity score
+                    name_similarity = func.similarity(Song.track_name, query)
+                    conditions.append(name_similarity >= 0.3)  # Minimum similarity threshold
+                    
+                    # Add weighted score for ordering
                     base_query = base_query.add_columns(
                         (case(
-                            [(artist_similarity >= 0.8, 2.0),
-                             (artist_similarity >= 0.5, 1.5)],
-                            else_=artist_similarity
+                            [(name_similarity >= 0.8, 3.0),  # High similarity
+                             (name_similarity >= 0.5, 2.0)],  # Medium similarity
+                            else_=name_similarity  # Lower similarity
                         )).label('relevance_score')
                     )
-            
-            # Exact matches for genre and mood
-            if genre:
-                conditions.append(Song.playlist_genre == genre)
-            if mood:
-                conditions.append(Song.mood == mood)
-            
-            # Apply conditions if any exist
-            if conditions:
-                base_query = base_query.filter(or_(*conditions))
-            
-            # Order by relevance score if text search was performed
-            if query or artist:
-                base_query = base_query.order_by(text('relevance_score DESC NULLS LAST'))
-            else:
-                base_query = base_query.order_by(Song.track_name)
-            
-            # Apply pagination
-            results = base_query.offset(offset).limit(limit).all()
-            
-            # Extract Song objects from results (ignoring relevance scores)
-            songs = [result[0] if isinstance(result, tuple) else result for result in results]
-            
-            return songs
-            
-        except SQLAlchemyError as e:
-            logger.error(f"Database error during song search: {str(e)}")
-            raise DatabaseError(f"Error searching songs: {str(e)}")
+                
+                if artist:
+                    # Fuzzy match on artist name
+                    artist_similarity = func.similarity(Song.track_artist, artist)
+                    conditions.append(artist_similarity >= 0.3)
+                    
+                    if not query:  # Only add score if not already added
+                        base_query = base_query.add_columns(
+                            (case(
+                                [(artist_similarity >= 0.8, 2.0),
+                                 (artist_similarity >= 0.5, 1.5)],
+                                else_=artist_similarity
+                            )).label('relevance_score')
+                        )
+                
+                # Exact matches for genre and mood
+                if genre:
+                    conditions.append(Song.playlist_genre == genre)
+                if mood:
+                    conditions.append(Song.mood == mood)
+                
+                # Apply conditions if any exist
+                if conditions:
+                    base_query = base_query.filter(or_(*conditions))
+                
+                # Order by relevance score if text search was performed
+                if query or artist:
+                    base_query = base_query.order_by(text('relevance_score DESC NULLS LAST'))
+                else:
+                    base_query = base_query.order_by(Song.track_name)
+                
+                # Apply pagination
+                result = await session.execute(base_query.offset(offset).limit(limit))
+                results = result.all()
+                
+                # Extract Song objects from results (ignoring relevance scores)
+                songs = [result[0] if isinstance(result, tuple) else result for result in results]
+                
+                return songs
+                
+            except SQLAlchemyError as e:
+                logger.error(f"Database error during song search: {str(e)}")
+                raise DatabaseError(f"Error searching songs: {str(e)}")
             except Exception as e:
-            logger.error(f"Unexpected error during song search: {str(e)}")
-            raise
-        finally:
-            session.close()
+                logger.error(f"Unexpected error during song search: {str(e)}")
+                raise
 
-    async def get_active_file_paths(self) -> List[str]:
-        """Get list of active file paths from database"""
-        async with self.SessionLocal() as session:
-            try:
-                result = await session.execute(
-                    text("SELECT audio_path FROM songs WHERE audio_path IS NOT NULL")
-                )
-                paths = result.fetchall()
-                return [path[0] for path in paths if path[0]]
-            except Exception as e:
-                logger.error(f"Error getting active file paths: {e}")
-                return []
-
-    async def update_song(self, song_id: int, update_data: Dict) -> Optional[Song]:
-        """Update a song by ID with the provided data."""
-        def convert_numpy_types(obj):
-            if isinstance(obj, np.floating):
-                return float(obj)
-            elif isinstance(obj, np.integer):
-                return int(obj)
-            elif isinstance(obj, np.ndarray):
-                return obj.tolist()
-            elif isinstance(obj, dict):
-                return {k: convert_numpy_types(v) for k, v in obj.items()}
-            elif isinstance(obj, list):
-                return [convert_numpy_types(i) for i in obj]
-            return obj
-
-        async with self.SessionLocal() as session:
-            try:
-                # Get the song
-                query = select(Song).where(Song.id == song_id)
-                result = await session.execute(query)
-                song = result.scalar_one_or_none()
-                
-                if not song:
-                    return None
-                
-                # Update fields
-                for key, value in update_data.items():
-                    if hasattr(song, key):
-                        # Convert dict to JSON string for JSON fields
-                        if key in ['audio_features', 'word2vec_features', 'sentiment_features', 'topic_features']:
-                            if isinstance(value, dict):
-                                value = json.dumps(convert_numpy_types(value))
-                        setattr(song, key, value)
-                
-                await session.commit()
-                await session.refresh(song)
-                
-                # Parse JSON fields in response
-                if song.audio_features and isinstance(song.audio_features, str):
-                    song.audio_features = json.loads(song.audio_features)
-                if song.word2vec_features and isinstance(song.word2vec_features, str):
-                    song.word2vec_features = json.loads(song.word2vec_features)
-                if song.sentiment_features and isinstance(song.sentiment_features, str):
-                    song.sentiment_features = json.loads(song.sentiment_features)
-                if song.topic_features and isinstance(song.topic_features, str):
-                    song.topic_features = json.loads(song.topic_features)
-                
-                return song
-                
-            except Exception as e:
-                logger.error(f"Error updating song {song_id}: {e}")
-                await session.rollback()
-                return None
-
-    async def create_song(self, song_data: Dict) -> Optional[Song]:
-        """Create a new song in the database."""
-        def convert_numpy_types(obj):
-            if isinstance(obj, np.floating):
-                return float(obj)
-            elif isinstance(obj, np.integer):
-                return int(obj)
-            elif isinstance(obj, np.ndarray):
-                return obj.tolist()
-            elif isinstance(obj, dict):
-                return {k: convert_numpy_types(v) for k, v in obj.items()}
-            elif isinstance(obj, list):
-                return [convert_numpy_types(i) for i in obj]
-            return obj
-
-        async with self.SessionLocal() as session:
-            try:
-                # Convert dict fields to JSON strings
-                for key in ['audio_features', 'word2vec_features', 'sentiment_features', 'topic_features']:
-                    if key in song_data and isinstance(song_data[key], dict):
-                        song_data[key] = json.dumps(convert_numpy_types(song_data[key]))
-
-                # Create new song
-                song = Song(**song_data)
-                session.add(song)
-                await session.commit()
-                await session.refresh(song)
-
-                # Parse JSON fields in response
-                if song.audio_features and isinstance(song.audio_features, str):
-                    song.audio_features = json.loads(song.audio_features)
-                if song.word2vec_features and isinstance(song.word2vec_features, str):
-                    song.word2vec_features = json.loads(song.word2vec_features)
-                if song.sentiment_features and isinstance(song.sentiment_features, str):
-                    song.sentiment_features = json.loads(song.sentiment_features)
-                if song.topic_features and isinstance(song.topic_features, str):
-                    song.topic_features = json.loads(song.topic_features)
-
-                # Add to vector store if audio features present
-                if song.audio_features:
-                    self.vector_store.add_song(song.id, song.audio_features)
-
-                return song
-
-            except Exception as e:
-                logger.error(f"Error creating song: {e}")
-                await session.rollback()
-                return None
-
-    async def get_stats(self) -> Dict[str, Any]:
-        """Get database statistics"""
-        try:
-            async with self.SessionLocal() as session:
-                # Get total number of songs
-                result = await session.execute(text("SELECT COUNT(*) FROM songs"))
-                total_songs = await result.scalar()
-                
-                # Get number of songs with audio features
-                result = await session.execute(text("SELECT COUNT(*) FROM songs WHERE audio_features IS NOT NULL"))
-                songs_with_features = await result.scalar()
-                
-                # Get number of songs with lyrics
-                result = await session.execute(text("SELECT COUNT(*) FROM songs WHERE lyrics IS NOT NULL"))
-                songs_with_lyrics = await result.scalar()
-                
-                # Get database size
-                result = await session.execute(text("""
-                    SELECT pg_size_pretty(pg_database_size(current_database())) as size,
-                           pg_database_size(current_database()) as bytes
-                """))
-                row = await result.fetchone()
-                size_info = row if row else ('0 bytes', 0)
-                
-                # Get table sizes
-                result = await session.execute(text("""
-                    SELECT relname as table,
-                           pg_size_pretty(pg_total_relation_size(C.oid)) as size,
-                           pg_total_relation_size(C.oid) as bytes
-                    FROM pg_class C
-                    LEFT JOIN pg_namespace N ON (N.oid = C.relnamespace)
-                    WHERE nspname NOT IN ('pg_catalog', 'information_schema')
-                      AND C.relkind <> 'i'
-                      AND nspname !~ '^pg_toast'
-                    ORDER BY pg_total_relation_size(C.oid) DESC
-                """))
-                table_sizes = await result.fetchall()
-                
-                return {
-                    "total_songs": total_songs or 0,
-                    "songs_with_features": songs_with_features or 0,
-                    "songs_with_lyrics": songs_with_lyrics or 0,
-                    "database_size": {
-                        "pretty": size_info[0],
-                        "bytes": size_info[1]
-                    },
-                    "table_sizes": [
-                        {"table": row[0], "size": row[1], "bytes": row[2]}
-                        for row in (table_sizes or [])
-                    ],
-                    "connection_info": {
-                        "url": self.database_url.replace(
-                            self.database_url.split("@")[0], "postgresql://****:****"
-                        ) if "@" in self.database_url else self.database_url
-                    }
-                }
-                
-        except Exception as e:
-            logger.error(f"Error getting database stats: {e}")
-            return {
-                "error": str(e),
-                "total_songs": 0,
-                "songs_with_features": 0,
-                "songs_with_lyrics": 0,
-                "database_size": {"pretty": "0 bytes", "bytes": 0},
-                "table_sizes": [],
-                "connection_info": {"url": "error"}
-            }
-
-# Create global instance with settings
-db_manager = DatabaseManager()
-
-# Dependency for FastAPI
-async def get_db() -> AsyncGenerator[AsyncSession, None]:
-    """Dependency to get database session"""
-    async with db_manager.SessionLocal() as session:
-        try:
-            yield session
-        finally:
-            await session.close()
+# Create database manager instance
+db_manager = DatabaseManager() 
