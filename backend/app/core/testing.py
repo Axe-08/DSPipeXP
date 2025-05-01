@@ -134,7 +134,7 @@ async def verify_database_health() -> bool:
             try:
                 logger.info("Testing database connection...")
                 result = await session.execute(text("SELECT 1"))
-                value = await result.scalar()
+                value = result.scalar()
                 if value != 1:
                     logger.error("Database connection check returned unexpected value")
                     return False
@@ -147,7 +147,7 @@ async def verify_database_health() -> bool:
             result = await session.execute(text(
                 "SELECT EXISTS (SELECT 1 FROM pg_extension WHERE extname = 'pg_trgm')"
             ))
-            has_trgm = await result.scalar()
+            has_trgm = result.scalar()
             if not has_trgm:
                 logger.error("pg_trgm extension not found - fuzzy search will not work")
                 return False
@@ -162,7 +162,7 @@ async def verify_database_health() -> bool:
                     'idx_song_artist_trgm'
                 )
             """))
-            index_count = await result.scalar()
+            index_count = result.scalar()
             if index_count != 2:
                 logger.error("Missing required trigram indexes")
                 return False
@@ -170,7 +170,7 @@ async def verify_database_health() -> bool:
 
             # Get total song count
             result = await session.execute(text("SELECT COUNT(*) FROM songs"))
-            total_songs = await result.scalar()
+            total_songs = result.scalar()
             logger.info(f"Total songs in database: {total_songs}")
             
             if total_songs < 18000:
@@ -186,13 +186,13 @@ async def verify_database_health() -> bool:
                         LIMIT 1
                     )
                 """))
-                has_fuzzy_results = await result.scalar()
+                has_fuzzy_results = result.scalar()
                 if has_fuzzy_results:
                     logger.info("Fuzzy search functionality verified")
                 else:
                     logger.warning("No fuzzy search results found, but functionality appears to work")
             except Exception as e:
-                logger.error(f"Fuzzy search test failed: {e}")
+                logger.error(f"Fuzzy search test failed: {str(e)}", exc_info=True)
                 return False
 
             # Check data integrity
@@ -204,7 +204,7 @@ async def verify_database_health() -> bool:
                    OR track_name = '' 
                    OR track_artist = ''
             """))
-            invalid_records = await result.scalar()
+            invalid_records = result.scalar()
             if invalid_records > 0:
                 logger.warning(f"Found {invalid_records} records with missing required data, but continuing anyway")
             logger.info("Data integrity verified")
@@ -216,21 +216,18 @@ async def verify_database_health() -> bool:
                 WHERE audio_features IS NOT NULL 
                   AND audio_features::jsonb IS NOT NULL
             """))
-            songs_with_features = await result.scalar()
+            songs_with_features = result.scalar()
             logger.info(f"Songs with valid audio features: {songs_with_features}")
 
             # Check database size
             result = await session.execute(text("""
                 SELECT pg_size_pretty(pg_database_size(current_database()))
             """))
-            db_size = await result.scalar()
+            db_size = result.scalar()
             logger.info(f"Database size: {db_size if db_size else 'unknown'}")
 
             return True
 
-        except Exception as e:
-            logger.error(f"Error during health checks: {str(e)}", exc_info=True)
-            return False
         finally:
             try:
                 logger.info("Closing database session...")

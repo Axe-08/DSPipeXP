@@ -86,11 +86,12 @@ class DatabaseManager:
                 # Test connection first
                 async with self.engine.begin() as conn:
                     result = await conn.execute(text("SELECT 1"))
-                    if await result.scalar() != 1:
+                    value = result.scalar()  # Don't await this - it's already a scalar
+                    if value != 1:
                         raise DatabaseError("Database connection test failed")
                     
-                # If connection works, create tables
-                await conn.run_sync(Base.metadata.create_all)
+                    # If connection works, create tables
+                    await conn.run_sync(Base.metadata.create_all)
                 
                 # Then populate vector store
                 await self.populate_vector_store()
@@ -122,7 +123,7 @@ class DatabaseManager:
                 # Get all songs with audio features
                 query = select(Song).where(Song.audio_features.isnot(None))
                 result = await session.execute(query)
-                songs = result.scalars().all()
+                songs = result.scalars().all()  # No need to await this - it's already resolved
                 
                 # Add each song's features to the vector store
                 for song in songs:
