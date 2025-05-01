@@ -8,15 +8,27 @@ from alembic import op
 import sqlalchemy as sa
 from sqlalchemy import text
 import logging
+import time
 
 # Set up logging
 logger = logging.getLogger(__name__)
 
 # revision identifiers, used by Alembic.
 revision = 'add_fuzzy_search'
-down_revision = '20250429_2330_003'  # Point to the correct revision ID
+down_revision = None  # Set to None to make it a new root
 branch_labels = None
 depends_on = None
+
+def retry_operation(func, max_attempts=3, delay=2):
+    """Retry an operation with exponential backoff"""
+    for attempt in range(max_attempts):
+        try:
+            return func()
+        except Exception as e:
+            if attempt == max_attempts - 1:
+                raise
+            logger.warning(f"Attempt {attempt + 1} failed: {e}. Retrying...")
+            time.sleep(delay * (2 ** attempt))
 
 def verify_extension() -> bool:
     """Verify pg_trgm extension is properly installed"""
@@ -54,22 +66,35 @@ def upgrade() -> None:
     try:
         logger.info("Starting fuzzy search migration upgrade...")
         
+        # Drop any existing indexes first to avoid conflicts
+        def drop_indexes():
+            op.execute('DROP INDEX IF EXISTS idx_song_track_name_trgm;')
+            op.execute('DROP INDEX IF EXISTS idx_song_artist_trgm;')
+        retry_operation(drop_indexes)
+        
         # Enable pg_trgm extension for fuzzy text search
         logger.info("Creating pg_trgm extension...")
-        op.execute('CREATE EXTENSION IF NOT EXISTS pg_trgm;')
+        def create_extension():
+            op.execute('CREATE EXTENSION IF NOT EXISTS pg_trgm;')
+        retry_operation(create_extension)
         
         if not verify_extension():
             raise Exception("Failed to create pg_trgm extension")
         logger.info("Successfully created pg_trgm extension")
         
-        # Create indexes for faster fuzzy search
+        # Create indexes for faster fuzzy search, with CONCURRENTLY to avoid locking
         logger.info("Creating trigram indexes...")
-        op.execute(
-            'CREATE INDEX idx_song_track_name_trgm ON songs USING gin (track_name gin_trgm_ops);'
-        )
-        op.execute(
-            'CREATE INDEX idx_song_artist_trgm ON songs USING gin (track_artist gin_trgm_ops);'
-        )
+        def create_track_name_index():
+            op.execute(
+                'CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_song_track_name_trgm ON songs USING gin (track_name gin_trgm_ops);'
+            )
+        retry_operation(create_track_name_index)
+        
+        def create_artist_index():
+            op.execute(
+                'CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_song_artist_trgm ON songs USING gin (track_artist gin_trgm_ops);'
+            )
+        retry_operation(create_artist_index)
         
         if not verify_indexes():
             raise Exception("Failed to create trigram indexes")
@@ -92,8 +117,10 @@ def downgrade() -> None:
         
         # Remove the indexes
         logger.info("Removing trigram indexes...")
-        op.execute('DROP INDEX IF EXISTS idx_song_track_name_trgm;')
-        op.execute('DROP INDEX IF EXISTS idx_song_artist_trgm;')
+        def drop_indexes():
+            op.execute('DROP INDEX IF EXISTS idx_song_track_name_trgm;')
+            op.execute('DROP INDEX IF EXISTS idx_song_artist_trgm;')
+        retry_operation(drop_indexes)
         
         # Verify indexes are removed
         if verify_indexes():
@@ -102,7 +129,9 @@ def downgrade() -> None:
         
         # Disable the extension
         logger.info("Removing pg_trgm extension...")
-        op.execute('DROP EXTENSION IF EXISTS pg_trgm;')
+        def drop_extension():
+            op.execute('DROP EXTENSION IF EXISTS pg_trgm;')
+        retry_operation(drop_extension)
         
         # Verify extension is removed
         if verify_extension():
