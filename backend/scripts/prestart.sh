@@ -1,6 +1,11 @@
 #!/bin/bash
 set -e
 
+# Debug: Print current directory and Python path
+echo "Current directory: $(pwd)"
+echo "Python executable: $(which python)"
+echo "PYTHONPATH: $PYTHONPATH"
+
 # Start message
 echo "Starting prestart.sh script..."
 
@@ -74,4 +79,47 @@ alembic upgrade head
 
 # Run database health check
 echo "Verifying database health..."
-python scripts/health_check.py 
+
+# Create a temporary health check script
+cat > health_check_temp.py << 'EOL'
+import asyncio
+import logging
+import sys
+import os
+
+# Configure logging
+logging.basicConfig(
+    level=logging.DEBUG,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    stream=sys.stdout
+)
+
+logger = logging.getLogger(__name__)
+
+async def run_health_check():
+    try:
+        logger.info("Importing verify_database_health...")
+        from app.core.testing import verify_database_health
+        
+        logger.info("Starting database health check...")
+        healthy = await verify_database_health()
+        if not healthy:
+            logger.error("Database health check failed")
+            sys.exit(1)
+        logger.info("Database health check passed")
+        
+    except ImportError as e:
+        logger.error(f"Import error: {e}")
+        logger.error(f"Current directory: {os.getcwd()}")
+        logger.error(f"Python path: {sys.path}")
+        sys.exit(1)
+    except Exception as e:
+        logger.error(f"Unhandled exception in health check: {str(e)}", exc_info=True)
+        sys.exit(1)
+
+if __name__ == "__main__":
+    asyncio.run(run_health_check())
+EOL
+
+# Run the health check with proper Python path
+PYTHONPATH=$PYTHONPATH:$(pwd) python health_check_temp.py 
