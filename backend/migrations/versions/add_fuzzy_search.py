@@ -1,6 +1,6 @@
 """add fuzzy search capability
 
-Revision ID: 20250429_2330_003
+Revision ID: 20250429_2340_004
 Create Date: 2024-03-31 12:00:00.000000
 
 """
@@ -14,8 +14,8 @@ import time
 logger = logging.getLogger(__name__)
 
 # revision identifiers, used by Alembic.
-revision = '20250429_2330_003'
-down_revision = None  # Set to None to make it a new root
+revision = '20250429_2340_004'
+down_revision = '20250429_2330_003'  # Point to the YouTube status columns migration
 branch_labels = None
 depends_on = None
 

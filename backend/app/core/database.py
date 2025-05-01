@@ -201,7 +201,7 @@ class DatabaseManager:
                     )).label('relevance_score')
                 )
             
-            if artist:
+                if artist:
                 # Fuzzy match on artist name
                 artist_similarity = func.similarity(Song.track_artist, artist)
                 conditions.append(artist_similarity >= 0.3)
@@ -242,7 +242,7 @@ class DatabaseManager:
         except SQLAlchemyError as e:
             logger.error(f"Database error during song search: {str(e)}")
             raise DatabaseError(f"Error searching songs: {str(e)}")
-        except Exception as e:
+            except Exception as e:
             logger.error(f"Unexpected error during song search: {str(e)}")
             raise
         finally:
