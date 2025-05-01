@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
 
 # revision identifiers, used by Alembic.
 revision = 'add_fuzzy_search'
-down_revision = '003_add_youtube_status_columns'  # Point to the latest numbered migration
+down_revision = '20250429_2330_003'  # Point to the correct revision ID
 branch_labels = None
 depends_on = None
 
