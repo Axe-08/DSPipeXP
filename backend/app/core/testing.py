@@ -111,14 +111,28 @@ async def verify_database_health() -> bool:
     try:
         logger.info("Starting comprehensive database health verification...")
         
-        # Initialize database manager first
-        await db_manager.initialize()
+        try:
+            # Initialize database manager first
+            logger.info("Initializing database manager...")
+            await db_manager.initialize()
+            logger.info("Database manager initialized successfully")
+        except Exception as e:
+            logger.error(f"Failed to initialize database manager: {str(e)}", exc_info=True)
+            return False
         
-        # Get a session for our health checks
-        session = await db_manager.get_session()
+        try:
+            # Get a session for our health checks
+            logger.info("Getting database session...")
+            session = await db_manager.get_session()
+            logger.info("Database session obtained successfully")
+        except Exception as e:
+            logger.error(f"Failed to get database session: {str(e)}", exc_info=True)
+            return False
+
         try:
             # Check database connection
             try:
+                logger.info("Testing database connection...")
                 result = await session.execute(text("SELECT 1"))
                 value = await result.scalar()
                 if value != 1:
@@ -126,7 +140,7 @@ async def verify_database_health() -> bool:
                     return False
                 logger.info("Database connection successful")
             except Exception as e:
-                logger.error(f"Database connection failed: {e}")
+                logger.error(f"Database connection failed: {str(e)}", exc_info=True)
                 return False
 
             # Check if pg_trgm extension is installed
@@ -214,11 +228,19 @@ async def verify_database_health() -> bool:
 
             return True
 
+        except Exception as e:
+            logger.error(f"Error during health checks: {str(e)}", exc_info=True)
+            return False
         finally:
-            await session.close()
+            try:
+                logger.info("Closing database session...")
+                await session.close()
+                logger.info("Database session closed successfully")
+            except Exception as e:
+                logger.error(f"Error closing database session: {str(e)}", exc_info=True)
 
     except Exception as e:
-        logger.error(f"Database health check failed: {str(e)}")
+        logger.error(f"Unhandled error in database health check: {str(e)}", exc_info=True)
         return False
 
 async def run_startup_tests():
