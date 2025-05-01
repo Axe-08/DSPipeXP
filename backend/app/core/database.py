@@ -51,29 +51,69 @@ class Song(Base):
 def get_async_database_url() -> str:
     """Convert DATABASE_URL to async format if needed"""
     url = settings.DATABASE_URL
+    if not url:
+        raise ValueError("DATABASE_URL is not set in environment variables")
+    
+    # Ensure we have a valid postgresql URL
+    if not url.startswith(('postgresql://', 'postgresql+asyncpg://')):
+        raise ValueError(f"Invalid database URL format: {url}")
+        
     if url.startswith('postgresql://'):
         url = url.replace('postgresql://', 'postgresql+asyncpg://', 1)
     return url
 
 class DatabaseManager:
+    _instance = None
+    _initialized = False
+
+    def __new__(cls, database_url: Optional[str] = None):
+        if cls._instance is None:
+            cls._instance = super().__new__(cls)
+        return cls._instance
+
     def __init__(self, database_url: Optional[str] = None):
-        self.database_url = database_url if database_url else get_async_database_url()
-        self.engine = create_async_engine(self.database_url)
-        self.SessionLocal = async_sessionmaker(self.engine, expire_on_commit=False)
-        self.vector_store = VectorStore()
+        if not self._initialized:
+            self.database_url = database_url if database_url else get_async_database_url()
+            self.engine = create_async_engine(self.database_url)
+            self.SessionLocal = async_sessionmaker(self.engine, expire_on_commit=False)
+            self.vector_store = VectorStore()
+            self._initialized = True
+
+    async def initialize(self):
+        """Initialize the database and vector store"""
+        if not hasattr(self, '_setup_done'):
+            try:
+                # Test connection first
+                async with self.engine.begin() as conn:
+                    result = await conn.execute(text("SELECT 1"))
+                    if await result.scalar() != 1:
+                        raise DatabaseError("Database connection test failed")
+                    
+                # If connection works, create tables
+                await conn.run_sync(Base.metadata.create_all)
+                
+                # Then populate vector store
+                await self.populate_vector_store()
+                self._setup_done = True
+                logger.info("Database initialization completed successfully")
+            except Exception as e:
+                logger.error(f"Database initialization failed: {e}")
+                raise DatabaseError(f"Failed to initialize database: {str(e)}")
 
     async def get_db(self) -> AsyncGenerator[AsyncSession, None]:
+        if not hasattr(self, '_setup_done'):
+            await self.initialize()
         async with self.SessionLocal() as session:
             try:
                 yield session
             finally:
                 await session.close()
 
-    async def initialize(self):
-        """Initialize the database and vector store"""
-        async with self.engine.begin() as conn:
-            await conn.run_sync(Base.metadata.create_all)
-        await self.populate_vector_store()
+    async def get_session(self) -> AsyncSession:
+        """Get a single session for one-off operations"""
+        if not hasattr(self, '_setup_done'):
+            await self.initialize()
+        return self.SessionLocal()
 
     async def populate_vector_store(self):
         """Populate the vector store with features from existing songs"""
@@ -172,5 +212,5 @@ class DatabaseManager:
                 logger.error(f"Unexpected error during song search: {str(e)}")
                 raise
 
-# Create database manager instance
+# Create lazy database manager instance
 db_manager = DatabaseManager() 

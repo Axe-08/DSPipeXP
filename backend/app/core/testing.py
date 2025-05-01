@@ -111,7 +111,12 @@ async def verify_database_health() -> bool:
     try:
         logger.info("Starting comprehensive database health verification...")
         
-        async with db_manager.SessionLocal() as session:
+        # Initialize database manager first
+        await db_manager.initialize()
+        
+        # Get a session for our health checks
+        session = await db_manager.get_session()
+        try:
             # Check database connection
             try:
                 result = await session.execute(text("SELECT 1"))
@@ -208,6 +213,9 @@ async def verify_database_health() -> bool:
             logger.info(f"Database size: {db_size if db_size else 'unknown'}")
 
             return True
+
+        finally:
+            await session.close()
 
     except Exception as e:
         logger.error(f"Database health check failed: {str(e)}")
