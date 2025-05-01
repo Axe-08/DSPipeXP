@@ -73,7 +73,12 @@ test_db_connection() {
 # Test database connection
 test_db_connection "$DATABASE_URL"
 
-# Run database migrations
+# Run database schema updates
+echo "Running schema updates..."
+export PGPASSWORD=$DB_PASSWORD
+psql -h $DB_HOST -p $DB_PORT -U $DB_USER -d $DB_NAME -f scripts/add_youtube_columns.sql
+
+# Run database migrations (for other tables/changes)
 echo "Running database migrations..."
 alembic upgrade head
 

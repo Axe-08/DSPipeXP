@@ -120,21 +120,27 @@ class DatabaseManager:
         """Populate the vector store with features from existing songs"""
         try:
             async with self.SessionLocal() as session:
-                # Get all songs with audio features
-                query = select(Song).where(Song.audio_features.isnot(None))
+                # Get all songs with audio features, but only select the columns we need
+                query = select(
+                    Song.id,
+                    Song.audio_features
+                ).where(Song.audio_features.isnot(None))
+                
                 result = await session.execute(query)
-                songs = result.scalars().all()  # No need to await this - it's already resolved
+                songs = result.all()  # Returns list of tuples (id, audio_features)
                 
                 # Add each song's features to the vector store
-                for song in songs:
-                    features = json.loads(song.audio_features) if isinstance(song.audio_features, str) else song.audio_features
-                    self.vector_store.add_song(song.id, features)
+                for song_id, audio_features in songs:
+                    features = json.loads(audio_features) if isinstance(audio_features, str) else audio_features
+                    self.vector_store.add_song(song_id, features)
                 
                 logger.info(f"Populated vector store with {len(songs)} songs")
                 
         except Exception as e:
             logger.error(f"Error populating vector store: {e}")
-            raise
+            # Don't raise the error - vector store population is not critical
+            # We can still function without it
+            pass
 
     async def search_songs(
         self,
