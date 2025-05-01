@@ -1,4 +1,4 @@
-from sqlalchemy import create_engine, Column, Integer, String, Float, JSON, Boolean, DateTime, text, MetaData, func, or_, case, else_
+from sqlalchemy import create_engine, Column, Integer, String, Float, JSON, Boolean, DateTime, text, MetaData, func, or_, case
 from sqlalchemy.orm import sessionmaker, declarative_base
 from sqlalchemy.pool import QueuePool
 import numpy as np
