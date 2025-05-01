@@ -16,8 +16,13 @@ from app.models.models import Base
 # access to the values within the .ini file in use.
 config = context.config
 
-# override sqlalchemy.url from alembic.ini with value from environment
-config.set_main_option("sqlalchemy.url", os.getenv("DATABASE_URL", "postgresql://postgres:postgres@db:5432/dspipexp"))
+# Get the database URL from environment variable
+database_url = os.getenv("DATABASE_URL")
+if database_url and database_url.startswith("postgresql://"):
+    database_url = database_url.replace("postgresql://", "postgresql+psycopg2://", 1)
+
+# override sqlalchemy.url from alembic.ini
+config.set_main_option("sqlalchemy.url", database_url)
 
 # Interpret the config file for Python logging.
 # This line sets up loggers basically.

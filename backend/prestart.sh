@@ -25,11 +25,11 @@ test_db_connection() {
 
     while [ $attempt -le $max_attempts ]; do
         if [ "$connected" = false ]; then
-            echo "Attempt $attempt to connect to database..."
+        echo "Attempt $attempt to connect to database..."
             if PGPASSWORD=$DB_PASSWORD psql -h $DB_HOST -p $DB_PORT -U $DB_USER -d $DB_NAME -c '\dx'; then
-                echo "Successfully connected to database on attempt $attempt"
-                connected=true
-            else
+            echo "Successfully connected to database on attempt $attempt"
+            connected=true
+        else
                 if [ $attempt -eq $max_attempts ]; then
                     echo "Error: Failed to connect to database after $max_attempts attempts"
                     return 1
@@ -63,14 +63,14 @@ if [[ $DATABASE_URL =~ ^(postgresql(\+asyncpg)?|postgres)://([^:]+):([^@]+)@([^:
     export DB_PORT="${BASH_REMATCH[6]}"
     export DB_NAME="${BASH_REMATCH[7]}"
 elif [[ $DATABASE_URL =~ ^(postgresql(\+asyncpg)?|postgres)://([^:]+):([^@]+)@([^/]+)/(.+)$ ]]; then
-    export DB_USER="${BASH_REMATCH[3]}"
-    export DB_PASSWORD="${BASH_REMATCH[4]}"
-    export DB_HOST="${BASH_REMATCH[5]}"
+        export DB_USER="${BASH_REMATCH[3]}"
+        export DB_PASSWORD="${BASH_REMATCH[4]}"
+        export DB_HOST="${BASH_REMATCH[5]}"
     export DB_PORT="5432"
-    export DB_NAME="${BASH_REMATCH[6]}"
-else
+        export DB_NAME="${BASH_REMATCH[6]}"
+    else
     echo "Error: Invalid DATABASE_URL format"
-    exit 1
+        exit 1
 fi
 
 echo "Successfully parsed DATABASE_URL"
