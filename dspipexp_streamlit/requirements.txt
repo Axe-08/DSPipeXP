@@ -1,0 +1,17 @@
+streamlit
+sqlalchemy
+psycopg2-binary
+pandas
+librosa
+numpy
+scikit-learn
+gensim
+faiss-cpu
+vaderSentiment
+pytube
+yt-dlp
+requests
+beautifulsoup4
+lxml
+plotly 
+base64
