@@ -27,6 +27,248 @@ import requests
 import os
 import re
 
+# --- Theme and Dark Mode Settings ---
+def initialize_theme_settings():
+    # Initialize theme settings in session state if not already present
+    if 'theme' not in st.session_state:
+        # Default to light mode
+        st.session_state.theme = "light"
+    
+    # Custom CSS for dark/light mode
+    if st.session_state.theme == "dark":
+        dark_mode_css = """
+        /* Dark Mode CSS */
+        [data-testid="stAppViewContainer"], [data-testid="stHeader"] {
+            background-color: #121212;
+            color: #f1f1f1;
+        }
+        
+        .song-card {
+            background-color: #1e1e1e;
+            border: 1px solid #333;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.5);
+        }
+        
+        .stTabs [data-baseweb="tab-list"] {
+            background-color: #1e1e1e;
+            border-radius: 8px;
+        }
+        
+        .stTabs [data-baseweb="tab"] {
+            color: #ccc;
+        }
+        
+        .stTabs [aria-selected="true"] {
+            background-color: #2e2e2e !important;
+            color: #fff !important;
+        }
+        
+        .stButton button {
+            background-color: #333;
+            color: white;
+            border: 1px solid #444;
+        }
+        
+        .stButton button:hover {
+            background-color: #444;
+            border-color: #555;
+        }
+        
+        .stTextInput input, .stTextArea textarea, .stNumberInput input {
+            background-color: #252525;
+            color: #eee;
+            border-color: #444;
+        }
+        
+        .stSelectbox [data-baseweb="select"] {
+            background-color: #252525;
+        }
+        
+        .stSelectbox [data-baseweb="select"] > div {
+            background-color: #252525;
+            color: #eee;
+        }
+        
+        .similarity-score {
+            color: #4CAF50;
+            font-size: 0.85em;
+            margin-left: 8px;
+        }
+        
+        /* About Section Styling */
+        .about-section {
+            background-color: #1e1e1e;
+            border-left: 1px solid #333;
+            padding: 20px;
+            height: 100vh;
+            position: fixed;
+            right: 0;
+            top: 0;
+            width: 300px;
+            box-shadow: -2px 0 5px rgba(0,0,0,0.3);
+            z-index: 1000;
+            overflow-y: auto;
+        }
+        
+        .close-btn {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            cursor: pointer;
+            color: #ccc;
+            font-size: 24px;
+        }
+        """
+        st.markdown(f"<style>{dark_mode_css}</style>", unsafe_allow_html=True)
+    else:
+        light_mode_css = """
+        /* Light Mode CSS */
+        .song-card {
+            background-color: #ffffff;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            transition: transform 0.2s ease-in-out;
+        }
+        
+        .song-card:hover {
+            transform: translateY(-3px);
+        }
+        
+        .stTabs [data-baseweb="tab-list"] {
+            background-color: #f8f9fa;
+            border-radius: 8px;
+            padding: 5px;
+        }
+        
+        .stTabs [data-baseweb="tab"] {
+            border-radius: 5px;
+            font-weight: 500;
+        }
+        
+        .stTabs [aria-selected="true"] {
+            background-color: #e6f3ff !important;
+            color: #1e88e5 !important;
+        }
+        
+        .stButton button {
+            border-radius: 6px;
+            font-weight: 500;
+        }
+        
+        .similarity-score {
+            color: #2e7d32;
+            font-size: 0.85em;
+            margin-left: 8px;
+        }
+        
+        .album-cover {
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+        }
+        
+        /* About Section Styling */
+        .about-section {
+            background-color: #ffffff;
+            border-left: 1px solid #e0e0e0;
+            padding: 20px;
+            height: 100vh;
+            position: fixed;
+            right: 0;
+            top: 0;
+            width: 300px;
+            box-shadow: -2px 0 5px rgba(0,0,0,0.1);
+            z-index: 1000;
+            overflow-y: auto;
+        }
+        
+        .close-btn {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            cursor: pointer;
+            color: #666;
+            font-size: 24px;
+        }
+        
+        /* Header styling */
+        .header-container {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding: 10px 0;
+        }
+        
+        .header-title {
+            display: flex;
+            align-items: center;
+        }
+        
+        .header-actions {
+            display: flex;
+            gap: 10px;
+        }
+        """
+        st.markdown(f"<style>{light_mode_css}</style>", unsafe_allow_html=True)
+
+def toggle_theme():
+    """Toggle between light and dark mode"""
+    if st.session_state.theme == "light":
+        st.session_state.theme = "dark"
+    else:
+        st.session_state.theme = "light"
+
+def show_about_section():
+    """Display the About Us section"""
+    st.markdown(
+        """
+        <div class="about-section">
+            <div class="close-btn" onclick="document.querySelector('.about-section').style.display='none';">×</div>
+            <h2>About DSPipeXP</h2>
+            <p>DSPipeXP Music Recommendation is a state-of-the-art platform that uses advanced audio processing and machine learning to help you discover music you'll love.</p>
+            
+            <h3>Our Technology</h3>
+            <p>We analyze songs using:</p>
+            <ul>
+                <li>Audio feature extraction</li>
+                <li>Natural language processing for lyrics analysis</li>
+                <li>Sentiment analysis</li>
+                <li>Hybrid recommendation algorithms</li>
+            </ul>
+            
+            <h3>The Team</h3>
+            <p>Our team consists of passionate music lovers, data scientists, and developers who believe in the power of technology to connect people with the music they love.</p>
+            
+            <h3>Our Mission</h3>
+            <p>To create the most personalized music discovery experience by combining the science of sound with the art of musical taste.</p>
+            
+            <h3>Contact Us</h3>
+            <p>Email: info@dspipexp.com<br>
+            Twitter: @DSPipeXP<br>
+            GitHub: github.com/dspipexp</p>
+            
+            <p>© 2025 DSPipeXP Music Recommendation</p>
+        </div>
+        
+        <script>
+            // JavaScript to handle the close button
+            const closeBtn = document.querySelector('.close-btn');
+            if (closeBtn) {
+                closeBtn.addEventListener('click', function() {
+                    document.querySelector('.about-section').style.display = 'none';
+                });
+            }
+        </script>
+        """, 
+        unsafe_allow_html=True
+    )
+
 # Set up page configuration
 st.set_page_config(
     page_title="DSPipeXP Music Recommendation", 
@@ -34,11 +276,13 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
+# Initialize theme settings
+initialize_theme_settings()
+
 # Load custom CSS for better styling
 load_custom_css()
 
 # --- Helper Functions ---
-
 def show_song_card(song, similarity=None, with_recommendations=False):
     """Display a song in a modern card layout with album art"""
     import json
@@ -228,21 +472,65 @@ def youtube_cookies_sidebar():
             with col2:
                 if st.button("Continue", key="sidebar_yes_cookies"):
                     st.session_state['show_cookies_sidebar'] = False
-                    
-# Configure the main page elements
+
+# --- Header with Dark Mode Toggle and About Us Button ---
+def render_header():
+    # Initialize session state for About section
+    if 'show_about' not in st.session_state:
+        st.session_state.show_about = False
+
+    # Custom HTML/CSS for header
+    st.markdown("""
+    <div class="header-container">
+        <div class="header-title">
+            <h1>🎵 DSPipeXP Music Recommendation</h1>
+        </div>
+        <div class="header-actions" id="header-actions">
+            <!-- Placeholder for buttons (will be added via Streamlit) -->
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
+    
+    # Add the buttons via Streamlit
+    col1, col2 = st.columns([6, 1])
+    
+    with col2:
+        # Row for buttons
+        btn_col1, btn_col2 = st.columns(2)
+        
+        with btn_col1:
+            # Dark mode toggle
+            icon = "🌙" if st.session_state.theme == "light" else "☀️"
+            if st.button(icon, help="Toggle dark/light mode"):
+                toggle_theme()
+                st.rerun()
+        
+        with btn_col2:
+            # About us button
+            if st.button("ℹ️", help="About Us"):
+                st.session_state.show_about = not st.session_state.show_about
+                st.rerun()
+    
+    # Show About section if active
+    if st.session_state.show_about:
+        show_about_section()
+
+# Show sidebar for cookies if needed
 if 'show_cookies_sidebar' not in st.session_state:
     st.session_state['show_cookies_sidebar'] = True
 
-# Show sidebar for cookies if needed
 if st.session_state['show_cookies_sidebar']:
     youtube_cookies_sidebar()
 
-# Main app title
-st.title("🎵 DSPipeXP Music Recommendation")
+# Render header with dark mode toggle and about us button
+render_header()
+
 st.write("Search for songs, get recommendations, or upload your own music!")
 
 # Create centered tabs with better styling
 tab1, tab2, tab3 = st.tabs(["🔍 Search", "⬆️ Upload", "🎥 YouTube"])
+
+
 
 # --- Search Tab Implementation ---
 def render_search_tab(tab):
