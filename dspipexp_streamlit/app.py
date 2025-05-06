@@ -287,7 +287,7 @@ def show_about_section():
     st.markdown(
         """
         <div class="about-section">
-            <div class="close-btn" onclick="document.querySelector('.about-section').style.display='none';">×</div>
+            <div class="close-btn" onclick="closeAbout()">×</div>
             <h2>About DSPipeXP</h2>
             <p>DSPipeXP Music Recommendation is a state-of-the-art platform that uses advanced audio processing and machine learning to help you discover music you'll love.</p>
             
@@ -321,16 +321,32 @@ def show_about_section():
         
         <script>
             // JavaScript to handle the close button
-            const closeBtn = document.querySelector('.close-btn');
-            if (closeBtn) {
-                closeBtn.addEventListener('click', function() {
-                    document.querySelector('.about-section').style.display = 'none';
-                });
+            function closeAbout() {
+                // Hide the about section
+                document.querySelector('.about-section').style.display = 'none';
+                
+                // Update Streamlit state via a callback
+                if (window.parent && typeof window.parent.postMessage === "function") {
+                    window.parent.postMessage({
+                        type: "streamlit:componentReady",
+                        value: false
+                    }, "*");
+                }
+                
+                // Force a page refresh to update the UI state
+                setTimeout(function() {
+                    window.location.reload();
+                }, 100);
             }
         </script>
         """, 
         unsafe_allow_html=True
     )
+    
+    # Add a button at the bottom of the about section for users who can't access the × button
+    if st.button("Close About Section", key="close_about_btn"):
+        st.session_state.show_about = False
+        st.rerun()
 
 
 # Initialize theme settings
@@ -1180,6 +1196,23 @@ def render_youtube_tab(tab):
     with tab:
         st.header("Find Songs from YouTube")
         
+        # Add information box about cloud limitations
+        st.warning("⚠️ **YouTube Functionality Limitations**")
+        st.markdown("""
+        **Note**: YouTube functionality has significant limitations when running in Streamlit Cloud due to:
+        
+        - YouTube's strict anti-scraping measures
+        - IP-based blocking of cloud service providers
+        - API quota and rate limits
+        
+        **For full YouTube functionality**: We recommend [forking our GitHub repository](https://github.com/Heisenberg-Vader/DSPipeXP) and running the application locally on your computer.
+        
+        [See our installation guide](https://github.com/Heisenberg-Vader/DSPipeXP#installation) for step-by-step instructions.
+        """)
+        
+        # Create a divider between the warning and the functionality
+        st.markdown("---")
+        
         # Option to enter YouTube URL directly or search YouTube
         yt_method = st.radio(
             "How would you like to find a song?",
@@ -1304,9 +1337,21 @@ def process_youtube_url_with_ui(youtube_url):
                     # Check for specific error messages to provide better user guidance
                     if "Video unavailable" in error:
                         status_container.error(f"This YouTube video is unavailable. It may have been removed, set to private, or doesn't exist. Please try another video URL.")
-                        progress_container.empty()
-                        eta_container.empty()
-                        return
+                    elif "HTTP Error 403" in error or "Forbidden" in error:
+                        status_container.error(f"YouTube blocked this request (403 Forbidden). This commonly happens when running in cloud environments.")
+                        status_container.markdown("""
+                        **For reliable YouTube access**: We recommend [running the app locally](https://github.com/Heisenberg-Vader/DSPipeXP#installation) on your computer.
+                        
+                        This avoids the IP-based blocks that cloud deployments often experience.
+                        """)
+                    elif "timed out" in error.lower():
+                        status_container.error(f"Request timed out while connecting to YouTube. YouTube may be rate-limiting the cloud server.")
+                        status_container.markdown("""
+                        **Solutions**:
+                        1. Try again in a few minutes
+                        2. Try a different video
+                        3. Run the app locally for better performance
+                        """)
                     else:
                         status_text.warning(error)
                 
@@ -1697,7 +1742,18 @@ def search_youtube_with_ui(query, max_results=5):
         results = youtube_search(query, max_results=max_results)
         
     if not results:
-        st.warning("No YouTube results found. Try a different search query.")
+        st.error("❌ YouTube search failed")
+        st.markdown("""
+        **Why this happens**: YouTube search often fails in cloud deployments due to:
+        - API rate limiting
+        - Service provider IP blocking
+        - Network timeouts
+        
+        **Solutions**:
+        1. Try again in a few minutes
+        2. Try a direct YouTube URL instead
+        3. For reliable access, [run the app locally](https://github.com/Heisenberg-Vader/DSPipeXP#installation)
+        """)
         return
     
     st.success(f"Found {len(results)} videos on YouTube")
