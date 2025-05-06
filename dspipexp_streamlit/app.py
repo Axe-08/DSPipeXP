@@ -1192,7 +1192,57 @@ def render_youtube_tab(tab):
         
         **For full YouTube functionality**: We recommend [forking our GitHub repository](https://github.com/Axe-08/DSPipeXP) and running the application locally on your computer.
         
-        [See our installation guide](https://github.com/Axe-08/DSPipeXP?tab=readme-ov-file#running-locally-for-full-youtube-features) for step-by-step instructions.
+        [See our installation guide](https://github.com/Axe-08/DSPipeXP#installation) for step-by-step instructions.
+        """)
+        
+        # Add information box about cloud limitations
+        st.warning("⚠️ **YouTube Functionality Limitations**")
+        st.markdown("""
+        **Note**: YouTube functionality has significant limitations when running in Streamlit Cloud due to:
+        
+        - YouTube's strict anti-scraping measures
+        - IP-based blocking of cloud service providers
+        - API quota and rate limits
+        
+        **For full YouTube functionality**: We recommend [forking our GitHub repository](https://github.com/Axe-08/DSPipeXP) and running the application locally on your computer.
+        
+        [See our installation guide](https://github.com/Axe-08/DSPipeXP#installation) and [database setup instructions](https://github.com/Axe-08/DSPipeXP/blob/main/DATABASE_SETUP.md) for step-by-step instructions.
+        """)
+
+def render_youtube_tab(tab):
+    with tab:
+        st.header("Find Songs from YouTube")
+        
+        # Add information box about cloud limitations
+        st.warning("⚠️ **YouTube Functionality Limitations**")
+        st.markdown("""
+        **Note**: YouTube functionality has significant limitations when running in Streamlit Cloud due to:
+        
+        - YouTube's strict anti-scraping measures
+        - IP-based blocking of cloud service providers
+        - API quota and rate limits
+        
+        **For full YouTube functionality**: We recommend [forking our GitHub repository](https://github.com/Axe-08/DSPipeXP) and running the application locally on your computer.
+        
+        [See our installation guide](https://github.com/Axe-08/DSPipeXP#installation) and [database setup instructions](https://github.com/Axe-08/DSPipeXP/blob/main/DATABASE_SETUP.md) for step-by-step instructions.
+        """)
+
+def render_youtube_tab(tab):
+    with tab:
+        st.header("Find Songs from YouTube")
+        
+        # Add information box about cloud limitations
+        st.warning("⚠️ **YouTube Functionality Limitations**")
+        st.markdown("""
+        **Note**: YouTube functionality has significant limitations when running in Streamlit Cloud due to:
+        
+        - YouTube's strict anti-scraping measures
+        - IP-based blocking of cloud service providers
+        - API quota and rate limits
+        
+        **For full YouTube functionality**: We recommend [forking our GitHub repository](https://github.com/Axe-08/DSPipeXP) and running the application locally on your computer.
+        
+        [See our installation guide](https://github.com/Axe-08/DSPipeXP#installation) and [database setup instructions](https://github.com/Axe-08/DSPipeXP/blob/main/DATABASE_SETUP.md) for step-by-step instructions.
         """)
         
         # Create a divider between the warning and the functionality
@@ -1241,7 +1291,6 @@ def render_youtube_tab(tab):
             
             if youtube_search_query:
                 search_youtube_with_ui(youtube_search_query, max_results)
-
 
 def process_youtube_url_with_ui(youtube_url):
     """Process a YouTube URL with improved UI feedback"""
@@ -1325,7 +1374,21 @@ def process_youtube_url_with_ui(youtube_url):
                     elif "HTTP Error 403" in error or "Forbidden" in error:
                         status_container.error(f"YouTube blocked this request (403 Forbidden). This commonly happens when running in cloud environments.")
                         status_container.markdown("""
-                        **For reliable YouTube access**: We recommend [running the app locally](https://github.com/Axe-08/DSPipeXP?tab=readme-ov-file#running-locally-for-full-youtube-features) on your computer.
+                        **For reliable YouTube access**: We recommend [running the app locally](https://github.com/Axe-08/DSPipeXP#installation) on your computer.
+                        
+                        This avoids the IP-based blocks that cloud deployments often experience.
+                        """)
+                        status_container.markdown("""
+                        **For reliable YouTube access**: We recommend [running the app locally](https://github.com/Axe-08/DSPipeXP#installation) on your computer.
+                        
+                        Don't forget to [set up your local database](https://github.com/Axe-08/DSPipeXP/blob/main/DATABASE_SETUP.md) for full functionality.
+                        
+                        This avoids the IP-based blocks that cloud deployments often experience.
+                        """)
+                        status_container.markdown("""
+                        **For reliable YouTube access**: We recommend [running the app locally](https://github.com/Axe-08/DSPipeXP#installation) on your computer.
+                        
+                        Don't forget to [set up your local database](https://github.com/Axe-08/DSPipeXP/blob/main/DATABASE_SETUP.md) for full functionality.
                         
                         This avoids the IP-based blocks that cloud deployments often experience.
                         """)
@@ -1738,6 +1801,36 @@ def search_youtube_with_ui(query, max_results=5):
         1. Try again in a few minutes
         2. Try a direct YouTube URL instead
         3. For reliable access, [run the app locally](https://github.com/Axe-08/DSPipeXP#installation)
+        """)
+        return
+    
+    if not results:
+        st.error("❌ YouTube search failed")
+        st.markdown("""
+        **Why this happens**: YouTube search often fails in cloud deployments due to:
+        - API rate limiting
+        - Service provider IP blocking
+        - Network timeouts
+        
+        **Solutions**:
+        1. Try again in a few minutes
+        2. Try a direct YouTube URL instead
+        3. For reliable access, [run the app locally](https://github.com/Axe-08/DSPipeXP#installation) and [set up your database](https://github.com/Axe-08/DSPipeXP/blob/main/DATABASE_SETUP.md)
+        """)
+        return
+    
+    if not results:
+        st.error("❌ YouTube search failed")
+        st.markdown("""
+        **Why this happens**: YouTube search often fails in cloud deployments due to:
+        - API rate limiting
+        - Service provider IP blocking
+        - Network timeouts
+        
+        **Solutions**:
+        1. Try again in a few minutes
+        2. Try a direct YouTube URL instead
+        3. For reliable access, [run the app locally](https://github.com/Axe-08/DSPipeXP#installation) and [set up your database](https://github.com/Axe-08/DSPipeXP/blob/main/DATABASE_SETUP.md)
         """)
         return
     

@@ -34,7 +34,10 @@ A state-of-the-art music recommendation system that combines audio feature extra
    pip install -r requirements.txt
    ```
 
-4. **Run the Streamlit app**:
+4. **Set up the database**:
+   Follow the instructions in [DATABASE_SETUP.md](DATABASE_SETUP.md) to set up a local PostgreSQL database with initial music data.
+
+5. **Run the Streamlit app**:
    ```bash
    cd dspipexp_streamlit
    streamlit run app.py
@@ -100,7 +103,7 @@ For reliable YouTube functionality, we **strongly recommend running the app loca
    - If YouTube search fails, try using direct YouTube URLs instead
    - Consider using a VPN if your ISP blocks YouTube API access
 
-## �� Project Structure
+## 🎥 Project Structure
 
 ```
 DSPipeXP/
