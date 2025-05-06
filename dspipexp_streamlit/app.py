@@ -974,21 +974,7 @@ def render_header():
     
     # Show About section if active
     if st.session_state.show_about:
-        # Create a callback for the HTML component
-        from streamlit.components.v1.components import _component_func
-        
         show_about_section()
-        
-        # Listen for component message to close about section
-        components_value = st.session_state.get("_components_value", None)
-        if components_value is not None and components_value is False:
-            st.session_state.show_about = False
-            # Clear the components value
-            if "_components_value" in st.session_state:
-                del st.session_state["_components_value"]
-            st.rerun()
-
-
 # Show sidebar for cookies if needed
 if 'show_cookies_sidebar' not in st.session_state:
     st.session_state['show_cookies_sidebar'] = True
