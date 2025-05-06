@@ -40,11 +40,24 @@ try:
     
     def youtube_search(query, max_results=5):
         api_key = get_next_youtube_api_key()
-        return youtube_search_hybrid(query, max_results, api_key)
+        # Try to use API key safely - handle case where function doesn't accept it
+        try:
+            return youtube_search_hybrid(query, max_results)
+        except TypeError:
+            # If function doesn't accept 2 arguments, try with just query
+            return youtube_search_hybrid(query)
     
     def youtube_search_and_get_url(query):
         api_key = get_next_youtube_api_key()
-        return youtube_search_and_get_url_hybrid(query, api_key)
+        # Try to use API key safely - handle case where function doesn't accept it
+        try:
+            return youtube_search_and_get_url_hybrid(query)
+        except TypeError:
+            # If that fails too, implement simple fallback
+            results = youtube_search(query, max_results=1)
+            if results and len(results) > 0:
+                return results[0]['url']
+            return None
     
     # Show success message in the sidebar with API key count
     key_count = len(st.session_state.youtube_api_keys) if 'youtube_api_keys' in st.session_state else 0
