@@ -1,13 +1,11 @@
 # dspipexp_streamlit/app.py
 import streamlit as st
-
 # Set page config FIRST before any other Streamlit command
 st.set_page_config(
     page_title="DSPipeXP Music Recommendation",
     layout="wide",
     initial_sidebar_state="expanded"
 )
-
 # Continue with the rest of your imports
 import pandas as pd
 from src.db import get_engine, search_songs, insert_song, check_duplicate_song
@@ -42,11 +40,11 @@ try:
     
     def youtube_search(query, max_results=5):
         api_key = get_next_youtube_api_key()
-        return youtube_search_hybrid(query, max_results, api_key)
+        return youtube_search_hybrid(query=query, max_results=max_results, api_key=api_key)
     
     def youtube_search_and_get_url(query):
         api_key = get_next_youtube_api_key()
-        return youtube_search_and_get_url_hybrid(query, api_key)
+        return youtube_search_and_get_url_hybrid(query=query, api_key=api_key)
     
     # Show success message in the sidebar with API key count
     key_count = len(st.session_state.youtube_api_keys) if 'youtube_api_keys' in st.session_state else 0
