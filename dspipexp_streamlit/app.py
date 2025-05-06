@@ -316,11 +316,17 @@ def show_about_section():
         st.markdown("• **Akshit S Bansal** - Lead Developer")
         st.markdown("• **Kriti Chaturvedi** - Data Scientist")
         st.markdown("• **Hussain Haidary** - Machine Learning Engineer")
-        
+          
         # Links section
         st.subheader("Learn More")
         st.write("For more information about our project:")
         st.markdown("[GitHub Repository](https://github.com/Heisenberg-Vader/DSPipeXP)")
+        st.markdown("[Medium Article](https://medium.com/@23ucs625/lars-lyric-aware-recommendation-system-4aac512098b7)")
+        
+        # Links section
+        st.subheader("Learn More")
+        st.write("For more information about our project:")
+        st.markdown("[GitHub Repository](https://github.com/Axe-08/DSPipeXP)")
         st.markdown("[Medium Article](https://medium.com/@23ucs625/lars-lyric-aware-recommendation-system-4aac512098b7)")
         
         # Mission section

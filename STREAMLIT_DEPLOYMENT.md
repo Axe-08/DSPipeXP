@@ -68,6 +68,30 @@ Your app should now be up and running on Streamlit Cloud! The URL will be someth
 - If you see API errors, check your API keys and rate limits
 - If YouTube processing fails with "ffmpeg not found" errors, make sure you've added ffmpeg to the packages list in your app's Advanced settings
 
+## Known Limitations in Cloud Deployment
+
+### YouTube Functionality Limitations
+
+YouTube integration has significant limitations when running in cloud environments like Streamlit Cloud:
+
+1. **IP-based Blocking**: YouTube actively blocks requests from cloud provider IP ranges, resulting in 403 Forbidden errors
+2. **Rate Limiting**: YouTube imposes strict rate limits on requests from shared IP addresses
+3. **Connection Timeouts**: Requests to YouTube often time out in cloud environments
+4. **API Quota Restrictions**: The YouTube API has limited free quotas that can be quickly exhausted
+
+Despite adding ffmpeg to packages and configuring YouTube API keys, these limitations are largely unavoidable in cloud deployments due to YouTube's anti-scraping measures.
+
+### Recommendation for Users
+
+For users who need reliable YouTube functionality, we recommend:
+
+1. Include clear messaging in your app's YouTube section about these limitations
+2. Suggest users run the application locally for full YouTube functionality
+3. Provide a link to the GitHub repository and installation instructions
+4. Consider implementing fallback behaviors when YouTube operations fail
+
+For local installation instructions, refer to the main [README.md](README.md#-youtube-functionality-important).
+
 ## Updating Your App
 
 When you push changes to your GitHub repository, Streamlit Cloud will automatically detect the changes and update your app. No manual redeployment is needed! 

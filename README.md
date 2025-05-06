@@ -40,7 +40,67 @@ A state-of-the-art music recommendation system that combines audio feature extra
    streamlit run app.py
    ```
 
-## 📋 Project Structure
+## 🎥 YouTube Functionality (Important)
+
+### Cloud Limitations
+
+When running in cloud environments like Streamlit Cloud, the YouTube functionality faces significant limitations:
+
+- **IP-based Blocking**: YouTube actively blocks requests from known cloud providers and data centers
+- **Rate Limiting**: YouTube imposes strict rate limits, especially for automated requests
+- **API Quota Restrictions**: YouTube API has limited free quotas
+- **Connection Timeouts**: Requests often time out when processed through cloud servers
+
+### Running Locally for Full YouTube Features
+
+For reliable YouTube functionality, we **strongly recommend running the app locally** on your computer:
+
+1. **Install FFmpeg** (required for audio processing):
+   
+   - **Windows**:
+     ```
+     winget install FFmpeg
+     ```
+     or download from [FFmpeg.org](https://ffmpeg.org/download.html)
+   
+   - **macOS**:
+     ```
+     brew install ffmpeg
+     ```
+   
+   - **Linux**:
+     ```
+     sudo apt update && sudo apt install ffmpeg
+     ```
+
+2. **Install Python Dependencies with Extra YouTube Features**:
+   ```bash
+   pip install -r dspipexp_streamlit/requirements.txt
+   pip install innertube aiotube google-api-python-client
+   ```
+
+3. **Set up YouTube API keys** (optional but recommended):
+   - Create a project in [Google Developer Console](https://console.developers.google.com/)
+   - Enable YouTube Data API v3
+   - Create API keys and add to `.streamlit/secrets.toml`:
+     ```
+     YOUTUBE_API_KEY_1 = "your_api_key_1"
+     YOUTUBE_API_KEY_2 = "your_api_key_2"
+     YOUTUBE_API_KEY_3 = "your_api_key_3"
+     ```
+
+4. **Run the app locally**:
+   ```bash
+   cd dspipexp_streamlit
+   streamlit run app.py
+   ```
+
+5. **Troubleshooting YouTube Issues**:
+   - If you see "ffmpeg not found" errors, ensure FFmpeg is properly installed and in your PATH
+   - If YouTube search fails, try using direct YouTube URLs instead
+   - Consider using a VPN if your ISP blocks YouTube API access
+
+## �� Project Structure
 
 ```
 DSPipeXP/
