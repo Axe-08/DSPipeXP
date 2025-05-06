@@ -286,8 +286,50 @@ def show_about_section():
     """Display the About Us section"""
     st.markdown(
         """
+        <style>
+        /* Improved About Section Styling */
+        .about-section {
+            background-color: var(--background-color, #ffffff);
+            border-left: 1px solid var(--border-color, #e0e0e0);
+            padding: 20px;
+            padding-top: 60px; /* Extra space at top for the close button */
+            height: 100vh;
+            position: fixed;
+            right: 0;
+            top: 0;
+            width: 300px;
+            box-shadow: -2px 0 5px rgba(0,0,0,0.1);
+            z-index: 1000;
+            overflow-y: auto;
+        }
+        
+        /* Improved Close Button */
+        .about-close-btn {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background-color: var(--primary-color, #ff4b4b);
+            color: white;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            cursor: pointer;
+            z-index: 1001; /* Higher than the about section */
+            border: none;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        }
+        
+        .about-close-btn:hover {
+            background-color: #ff2a2a;
+        }
+        </style>
+        
         <div class="about-section">
-            <div class="close-btn" onclick="closeAbout()">×</div>
+            <button class="about-close-btn" onclick="closeAbout()">×</button>
             <h2>About DSPipeXP</h2>
             <p>DSPipeXP Music Recommendation is a state-of-the-art platform that uses advanced audio processing and machine learning to help you discover music you'll love.</p>
             
@@ -312,7 +354,7 @@ def show_about_section():
             <p>For more information about our project:</p>
             <ul>
                 <li><a href="https://github.com/Heisenberg-Vader/DSPipeXP" target="_blank">GitHub Repository</a></li>
-                <li><a href="https://medium.com/@heisenberg-vader/dspipexp" target="_blank">Medium Article</a></li>
+                <li><a href="https://medium.com/@23ucs625/lars-lyric-aware-recommendation-system-4aac512098b7" target="_blank">Medium Article</a></li>
             </ul>
             
             <h3>Our Mission</h3>
@@ -338,15 +380,27 @@ def show_about_section():
                     window.location.reload();
                 }, 100);
             }
+            
+            // Make sure close button is visible
+            document.addEventListener('DOMContentLoaded', function() {
+                // Ensure button is visible and on top
+                const closeBtn = document.querySelector('.about-close-btn');
+                if (closeBtn) {
+                    // Force it to be on top of all other elements
+                    document.body.appendChild(closeBtn);
+                }
+            });
         </script>
         """, 
         unsafe_allow_html=True
     )
     
-    # Add a button at the bottom of the about section for users who can't access the × button
-    if st.button("Close About Section", key="close_about_btn"):
-        st.session_state.show_about = False
-        st.rerun()
+    # Add a standard Streamlit button at the bottom for closing
+    col1, col2, col3 = st.columns([1, 2, 1])
+    with col2:
+        if st.button("✖️ Close About Section", key="close_about_btn", use_container_width=True):
+            st.session_state.show_about = False
+            st.rerun()
 
 
 # Initialize theme settings
