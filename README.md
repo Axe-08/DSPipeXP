@@ -174,8 +174,8 @@ DSPipeXP was developed by a team of data science students:
 
 ## 📚 Learn More
 
-- [GitHub Repository](https://github.com/Heisenberg-Vader/DSPipeXP)
-- [Medium Article](https://medium.com/@heisenberg-vader/dspipexp)
+- [GitHub Repository](https://github.com/Axe-08/DSPipeXP)
+- [Medium Article](https://medium.com/@23ucs625/lars-lyric-aware-recommendation-system-4aac512098b7)
 - [Project Documentation](dspipexp_streamlit/README.md)
 
 ## 🚀 Deployment
