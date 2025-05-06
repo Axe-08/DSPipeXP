@@ -1,3 +1,5 @@
+# dspipexp_streamlit/requirements.txt
+
 streamlit
 sqlalchemy
 psycopg2-binary
@@ -17,3 +19,8 @@ plotly
 musicbrainzngs
 pylast 
 ffmpeg-python
+innertube>=0.1.0
+aiotube>=0.4.0
+google-api-python-client>=2.108.0
+google-auth>=2.25.0
+google-auth-oauthlib>=1.1.0

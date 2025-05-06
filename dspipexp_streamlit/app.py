@@ -1,3 +1,4 @@
+# Update imports
 import streamlit as st
 import pandas as pd
 from src.db import get_engine, search_songs, insert_song, check_duplicate_song
@@ -14,7 +15,41 @@ from src.utils import (
     safe_image_load,
     explain_recommendation
 )
-from src.youtube import process_youtube_url, youtube_search_and_get_url, update_song_youtube_url, youtube_search
+from src.config import setup_youtube_api_keys, get_next_youtube_api_key
+
+# Set up YouTube API keys
+setup_youtube_api_keys()
+
+# Try to import hybrid implementation first, fall back to original if not available
+try:
+    # Import hybrid implementations
+    from src.youtube_hybrid import process_youtube_url_hybrid, youtube_search_hybrid, youtube_search_and_get_url_hybrid
+    from src.youtube import update_song_youtube_url  # Still use original for this function
+    
+    # Create wrapped functions that automatically handle API key rotation
+    def process_youtube_url(youtube_url, progress_callback=None):
+        api_key = get_next_youtube_api_key()
+        return process_youtube_url_hybrid(youtube_url, progress_callback, api_key)
+    
+    def youtube_search(query, max_results=5):
+        api_key = get_next_youtube_api_key()
+        return youtube_search_hybrid(query, max_results, api_key)
+    
+    def youtube_search_and_get_url(query):
+        api_key = get_next_youtube_api_key()
+        return youtube_search_and_get_url_hybrid(query, api_key)
+    
+    # Show success message in the sidebar with API key count
+    key_count = len(st.session_state.youtube_api_keys) if 'youtube_api_keys' in st.session_state else 0
+    if key_count > 0:
+        st.sidebar.success(f"🎉 Using hybrid YouTube extraction with {key_count} API key(s)")
+    else:
+        st.sidebar.info("Using hybrid YouTube extraction (no API keys found)")
+except ImportError:
+    # Fall back to original implementation
+    from src.youtube import process_youtube_url, youtube_search_and_get_url, update_song_youtube_url, youtube_search
+    st.sidebar.info("Using standard YouTube extraction. For better reliability, install: innertube, aiotube, google-api-python-client")
+
 from src.lyrics import fetch_lyrics_and_sentiment
 from src.recommender import get_similar_songs, get_similar_songs_for_features
 from sqlalchemy import text
@@ -26,7 +61,6 @@ from PIL import Image
 import requests
 import os
 import re
-
 # --- Theme and Dark Mode Settings ---
 
 
