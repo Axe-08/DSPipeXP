@@ -1,5 +1,14 @@
 # Update imports
 import streamlit as st
+
+# Set page config FIRST before any other Streamlit commands
+st.set_page_config(
+    page_title="DSPipeXP Music Recommendation",
+    layout="wide",
+    initial_sidebar_state="expanded"
+)
+
+# All other imports
 import pandas as pd
 from src.db import get_engine, search_songs, insert_song, check_duplicate_song
 from src.audio import extract_audio_features
@@ -16,40 +25,6 @@ from src.utils import (
     explain_recommendation
 )
 from src.config import setup_youtube_api_keys, get_next_youtube_api_key
-
-# Set up YouTube API keys
-setup_youtube_api_keys()
-
-# Try to import hybrid implementation first, fall back to original if not available
-try:
-    # Import hybrid implementations
-    from src.youtube_hybrid import process_youtube_url_hybrid, youtube_search_hybrid, youtube_search_and_get_url_hybrid
-    from src.youtube import update_song_youtube_url  # Still use original for this function
-    
-    # Create wrapped functions that automatically handle API key rotation
-    def process_youtube_url(youtube_url, progress_callback=None):
-        api_key = get_next_youtube_api_key()
-        return process_youtube_url_hybrid(youtube_url, progress_callback, api_key)
-    
-    def youtube_search(query, max_results=5):
-        api_key = get_next_youtube_api_key()
-        return youtube_search_hybrid(query, max_results, api_key)
-    
-    def youtube_search_and_get_url(query):
-        api_key = get_next_youtube_api_key()
-        return youtube_search_and_get_url_hybrid(query, api_key)
-    
-    # Show success message in the sidebar with API key count
-    key_count = len(st.session_state.youtube_api_keys) if 'youtube_api_keys' in st.session_state else 0
-    if key_count > 0:
-        st.sidebar.success(f"🎉 Using hybrid YouTube extraction with {key_count} API key(s)")
-    else:
-        st.sidebar.info("Using hybrid YouTube extraction (no API keys found)")
-except ImportError:
-    # Fall back to original implementation
-    from src.youtube import process_youtube_url, youtube_search_and_get_url, update_song_youtube_url, youtube_search
-    st.sidebar.info("Using standard YouTube extraction. For better reliability, install: innertube, aiotube, google-api-python-client")
-
 from src.lyrics import fetch_lyrics_and_sentiment
 from src.recommender import get_similar_songs, get_similar_songs_for_features
 from sqlalchemy import text
@@ -61,6 +36,79 @@ from PIL import Image
 import requests
 import os
 import re
+import logging
+
+# Set up a logger that will show which methods are being used
+logger = logging.getLogger("youtube_methods")
+logger.setLevel(logging.INFO)
+
+# Configure Streamlit logging to show our YouTube API method selection
+# Create a handler that will display logs in the Streamlit UI
+class StreamlitLogHandler(logging.Handler):
+    def emit(self, record):
+        message = self.format(record)
+        if record.levelno >= logging.ERROR:
+            st.error(message)
+        elif record.levelno >= logging.WARNING:
+            st.warning(message)
+        elif record.levelno >= logging.INFO:
+            # Don't display all info messages, just ones about YouTube methods
+            if "YouTube" in message or "youtube" in message:
+                with st.sidebar:
+                    st.info(message)
+
+# Add our custom handler to the logger
+streamlit_handler = StreamlitLogHandler()
+logger.addHandler(streamlit_handler)
+
+# Set up YouTube API keys
+setup_youtube_api_keys()
+
+# Create a sidebar section to display YouTube API method info
+with st.sidebar:
+    st.subheader("YouTube API Methods")
+    youtube_method_expander = st.expander("View API Method Usage", expanded=False)
+    with youtube_method_expander:
+        st.write("This section will show which YouTube API methods are being used")
+        if 'youtube_api_keys' in st.session_state:
+            key_count = len(st.session_state.youtube_api_keys)
+            if key_count > 0:
+                st.success(f"🎉 Using hybrid YouTube extraction with {key_count} API key(s)")
+            else:
+                st.info("Using hybrid YouTube extraction (no API keys found)")
+        else:
+            st.warning("YouTube API keys not configured")
+
+# Try to import hybrid implementation first, fall back to original if not available
+try:
+    # Import hybrid implementations
+    from src.youtube_hybrid import process_youtube_url_hybrid, youtube_search_hybrid, youtube_search_and_get_url_hybrid
+    from src.youtube import update_song_youtube_url  # Still use original for this function
+    
+    # Create wrapped functions that automatically handle API key rotation
+    def process_youtube_url(youtube_url, progress_callback=None):
+        api_key = get_next_youtube_api_key()
+        logger.info(f"Processing YouTube URL using API key rotation")
+        return process_youtube_url_hybrid(youtube_url, progress_callback, api_key)
+    
+    def youtube_search(query, max_results=5):
+        api_key = get_next_youtube_api_key()
+        logger.info(f"Searching YouTube using API key rotation")
+        return youtube_search_hybrid(query, max_results, api_key)
+    
+    def youtube_search_and_get_url(query):
+        api_key = get_next_youtube_api_key()
+        logger.info(f"Getting YouTube URL using API key rotation")
+        return youtube_search_and_get_url_hybrid(query, api_key)
+    
+    with st.sidebar:
+        st.success("Using enhanced YouTube extraction")
+
+except ImportError:
+    # Fall back to original implementation
+    from src.youtube import process_youtube_url, youtube_search_and_get_url, update_song_youtube_url, youtube_search
+    with st.sidebar:
+        st.info("Using standard YouTube extraction. For better reliability, install: innertube, aiotube, google-api-python-client")
 # --- Theme and Dark Mode Settings ---
 
 
