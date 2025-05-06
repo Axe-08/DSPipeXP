@@ -40,11 +40,11 @@ try:
     
     def youtube_search(query, max_results=5):
         api_key = get_next_youtube_api_key()
-        return youtube_search_hybrid(query=query, max_results=max_results, api_key=api_key)
+        return youtube_search_hybrid(query, max_results, api_key)
     
     def youtube_search_and_get_url(query):
         api_key = get_next_youtube_api_key()
-        return youtube_search_and_get_url_hybrid(query=query, api_key=api_key)
+        return youtube_search_and_get_url_hybrid(query, api_key)
     
     # Show success message in the sidebar with API key count
     key_count = len(st.session_state.youtube_api_keys) if 'youtube_api_keys' in st.session_state else 0
