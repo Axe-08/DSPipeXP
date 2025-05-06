@@ -9,7 +9,7 @@ import time
 import logging
 
 # Configure logging
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
 @st.cache_resource
@@ -18,6 +18,7 @@ def get_engine():
     Create SQLAlchemy engine with connection pooling and retries.
     Uses QueuePool with optimized settings for cloud DB connection.
     """
+    logger.info("Creating database engine")
     db_url = st.secrets["db_url"]
     
     # Configure connection pool with settings optimized for cloud DB
@@ -46,15 +47,16 @@ def test_connection(engine):
         try:
             with engine.connect() as conn:
                 conn.execute(text("SELECT 1")).fetchone()
-                logger.info("Database connection successful")
+                logger.info("✅ Database connection successful")
                 return True
         except Exception as e:
-            logger.warning(f"Database connection attempt {attempt+1} failed: {e}")
+            logger.warning(f"❌ Database connection attempt {attempt+1} failed: {e}")
             if attempt < max_retries - 1:
+                logger.info(f"⏳ Retrying in {retry_delay} seconds...")
                 time.sleep(retry_delay)
                 retry_delay *= 2  # Exponential backoff
             else:
-                logger.error(f"Failed to connect to database after {max_retries} attempts")
+                logger.error(f"❌ Failed to connect to database after {max_retries} attempts")
                 st.error(f"Database connection failed. Please try again later.")
     return False
 
@@ -72,26 +74,30 @@ def execute_with_retry(engine, query_func, max_retries=3):
     
     while retry_count < max_retries:
         try:
+            logger.info(f"Executing database query (attempt {retry_count+1}/{max_retries})")
             with engine.connect() as conn:
                 # Begin a transaction that will be automatically rolled back if an exception occurs
                 with conn.begin():
                     result = query_func(conn)
+                    logger.info("✅ Query executed successfully")
                     return result
         except Exception as e:
             retry_count += 1
-            logger.warning(f"Database query failed (attempt {retry_count}/{max_retries}): {e}")
+            logger.warning(f"❌ Database query failed (attempt {retry_count}/{max_retries}): {e}")
             
             if retry_count >= max_retries:
-                logger.error(f"Query failed after {max_retries} attempts: {e}")
+                logger.error(f"❌ Query failed after {max_retries} attempts: {e}")
                 raise
             
             # Exponential backoff
+            logger.info(f"⏳ Retrying in {retry_delay} seconds...")
             time.sleep(retry_delay)
             retry_delay *= 2
     
     return None
 
 def search_songs(engine, query, artist=None, genre=None, limit=20):
+    logger.info(f"Searching songs with query: '{query}', artist: '{artist}', genre: '{genre}', limit: {limit}")
     sql = """
         SELECT id, track_name, track_artist, track_album_name, playlist_genre, audio_features
         FROM songs
@@ -108,12 +114,15 @@ def search_songs(engine, query, artist=None, genre=None, limit=20):
     params['limit'] = limit
     
     def query_func(conn):
-        return conn.execute(text(sql), params).fetchall()
+        result = conn.execute(text(sql), params).fetchall()
+        logger.info(f"✅ Found {len(result)} songs matching query")
+        return result
     
     return execute_with_retry(engine, query_func)
 
 def insert_song(engine, song_data):
     # song_data: dict with keys matching DB columns
+    logger.info(f"Inserting/updating song: '{song_data.get('track_name')}' by '{song_data.get('track_artist')}'")
     sql = text("""
         INSERT INTO songs
         (track_name, track_artist, track_album_name, playlist_genre, lyrics, audio_features, word2vec_features, sentiment_features, topic_features, youtube_url, is_original)
@@ -137,7 +146,9 @@ def insert_song(engine, song_data):
     
     def query_func(conn):
         result = conn.execute(sql, song_data)
-        return result.scalar()
+        song_id = result.scalar()
+        logger.info(f"✅ Song saved with ID: {song_id}")
+        return song_id
     
     return execute_with_retry(engine, query_func)
 
@@ -156,6 +167,7 @@ def normalize_title(title):
     return title.strip()
 
 def check_duplicate_song(engine, track_name, track_artist, lyrics=None, title_threshold=0.8, lyrics_threshold=0.8):
+    logger.info(f"Checking for duplicates: '{track_name}' by '{track_artist}'")
     norm_title = normalize_title(track_name)
     sql = text("""
         SELECT id, track_name, track_artist, lyrics
@@ -165,6 +177,7 @@ def check_duplicate_song(engine, track_name, track_artist, lyrics=None, title_th
     
     def query_func(conn):
         rows = conn.execute(sql, {"artist": f"%{track_artist}%"}).fetchall()
+        logger.info(f"Found {len(rows)} songs by same artist to check for duplicates")
         possible_duplicates = []
         for row in rows:
             db_id = row.id
@@ -180,7 +193,8 @@ def check_duplicate_song(engine, track_name, track_artist, lyrics=None, title_th
                     tfidf = TfidfVectorizer().fit([lyrics, db_lyrics])
                     tfidf_matrix = tfidf.transform([lyrics, db_lyrics])
                     lyrics_sim = cosine_similarity(tfidf_matrix[0], tfidf_matrix[1])[0,0]
-                except Exception:
+                except Exception as e:
+                    logger.warning(f"Failed to compute lyrics similarity: {e}")
                     lyrics_sim = None
             if title_sim >= title_threshold or (lyrics_sim is not None and lyrics_sim >= lyrics_threshold):
                 possible_duplicates.append({
@@ -190,6 +204,7 @@ def check_duplicate_song(engine, track_name, track_artist, lyrics=None, title_th
                     "title_similarity": title_sim,
                     "lyrics_similarity": lyrics_sim
                 })
+        logger.info(f"✅ Found {len(possible_duplicates)} possible duplicates")
         return possible_duplicates
     
     return execute_with_retry(engine, query_func)

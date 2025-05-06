@@ -1,0 +1,28 @@
+# Streamlit secrets (contains sensitive information)
+.streamlit/secrets.toml
+
+# Local cache and temporary files
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+.cache/
+temp/
+tmp/
+downloaded_songs/
+temp_audio/
+
+# Environment files
+.env
+env/
+venv/
+ENV/
+
+# IDE settings
+.vscode/
+.idea/
+
+# OS specific
+.DS_Store
+Thumbs.db 

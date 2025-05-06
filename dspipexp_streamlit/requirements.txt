@@ -13,5 +13,6 @@ yt-dlp
 requests
 beautifulsoup4
 lxml
-plotly 
-base64
+plotly
+musicbrainzngs
+pylast 

@@ -24,6 +24,7 @@ wheels/
 venv/
 ENV/
 env/
+.env/
 
 # IDE
 .idea/
@@ -35,7 +36,35 @@ env/
 backup/
 data/*.csv
 enhanced_song_recommendations.csv
+*.db
+*.sqlite
+*.sqlite3
+*.faiss
+temp_audio/
+temp_lyrics/
+temp_uploads/
+downloaded_songs/
 
 # Jupyter Notebook
 .ipynb_checkpoints
 *.ipynb
+
+# Environment variables and secrets
+.env
+.streamlit/secrets.toml
+
+# OS specific
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Logs
+*.log
+logs/
+log/
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+*.temp

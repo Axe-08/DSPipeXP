@@ -95,58 +95,13 @@ def get_default_album_art():
         return img
 
 def load_custom_css():
-    """Add custom CSS for better UI styling"""
+    """Load custom CSS for better styling"""
     st.markdown("""
     <style>
-        /* Improved card styling */
-        .stCard {
-            border-radius: 10px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-            padding: 20px;
-            margin-bottom: 20px;
-            background-color: white;
-            transition: transform 0.3s ease, box-shadow 0.3s ease;
-        }
-        .stCard:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 8px 16px rgba(0,0,0,0.1);
-        }
-        
-        /* Better typography */
-        h1, h2, h3 {
-            font-weight: 600;
-            margin-bottom: 0.5em;
-        }
-        
-        /* Round corners for images */
-        img {
-            border-radius: 8px;
-        }
-
-        /* Image sizing for album covers */
-        .album-cover {
-            width: 200px;
-            height: 200px;
-            object-fit: cover;
-            display: block;
-            margin: 0 auto;
-        }
-        
-        /* Center and style tabs */
-        .stTabs [data-baseweb="tab-list"] {
-            gap: 16px;
-            justify-content: center;
-        }
-        .stTabs [data-baseweb="tab"] {
-            padding: 10px 20px;
-            border-radius: 10px 10px 0 0;
-            height: 60px;
-            font-weight: 600;
-            background-color: rgba(238, 238, 238, 0.3);
-        }
-        .stTabs [aria-selected="true"] {
-            background-color: rgba(144, 238, 144, 0.2);
-            box-shadow: 0px -2px 8px rgba(0, 0, 0, 0.05);
+        /* Custom slider styling */
+        .stSlider [data-baseweb=slider] {
+            padding-top: 1.5rem;
+            padding-bottom: 1rem;
         }
         
         /* Better buttons */
@@ -160,14 +115,45 @@ def load_custom_css():
         /* Format lyrics with proper line breaks */
         .lyrics {
             white-space: pre-wrap !important;
-            font-style: italic;
             line-height: 1.7;
             background-color: rgba(240, 240, 240, 0.4);
             padding: 16px;
             border-radius: 8px;
             max-height: 300px;
             overflow-y: auto;
-            font-family: inherit;
+            font-family: 'Courier New', monospace;
+        }
+        
+        /* Lyrics section headers */
+        .lyrics-section {
+            color: #666;
+            font-weight: bold;
+            margin-top: 10px;
+            margin-bottom: 8px;
+            font-style: italic;
+            text-transform: uppercase;
+            font-size: 0.9em;
+            padding-left: 5px;
+            border-left: 3px solid #aaa;
+        }
+        
+        /* Chorus styling */
+        .lyrics-chorus {
+            color: #444;
+            font-weight: 600;
+            font-style: italic;
+            margin-top: 10px;
+            margin-bottom: 8px;
+            border-left: 3px solid #4CAF50;
+            padding-left: 5px;
+            text-transform: uppercase;
+            font-size: 0.9em;
+        }
+        
+        /* Lyrics stanzas */
+        .lyrics-stanza {
+            margin-bottom: 20px;
+            padding-left: 5px;
         }
         
         /* Song cards */
@@ -280,17 +266,60 @@ def format_lyrics(lyrics):
     if not lyrics:
         return "<div class='lyrics'>No lyrics available</div>"
     
-    # Remove redundant whitespace but preserve intended line breaks
-    formatted = re.sub(r'\n\s*\n', '\n\n', lyrics)
+    # Process lyrics
+    # First, preserve and format section markers - handle "chorus" specially
+    def replace_section(match):
+        section_text = match.group(1).strip().lower()
+        if "chorus" in section_text:
+            return f'<div class="lyrics-chorus">[{match.group(1)}]</div>'
+        else:
+            return f'<div class="lyrics-section">[{match.group(1)}]</div>'
     
-    # Remove [verse], [chorus] etc. markers
-    formatted = re.sub(r'\[(.*?)\]', '', formatted)
+    # Replace all section markers with properly styled divs
+    formatted = re.sub(r'\[(.*?)\]', replace_section, lyrics)
     
-    # Convert newlines to HTML breaks to ensure proper rendering
-    formatted = formatted.replace('\n', '<br>')
+    # Split into stanzas (groups of lines separated by blank lines)
+    stanzas = re.split(r'\n\s*\n', formatted)
     
-    # Wrap in a div with proper styling
-    return f'<div class="lyrics">{formatted}</div>'
+    # Format each stanza
+    formatted_stanzas = []
+    for stanza in stanzas:
+        if stanza.strip():
+            # Handle line breaks within stanza but preserve indentation
+            stanza_lines = stanza.split('\n')
+            
+            # Better handling of indentation - replace leading spaces with non-breaking spaces
+            formatted_lines = []
+            for line in stanza_lines:
+                if line.strip():
+                    # Count leading spaces
+                    leading_spaces = len(line) - len(line.lstrip(' '))
+                    if leading_spaces > 0:
+                        # Replace leading spaces with non-breaking spaces
+                        formatted_line = '&nbsp;' * leading_spaces + line.lstrip(' ')
+                    else:
+                        formatted_line = line
+                    formatted_lines.append(formatted_line)
+                else:
+                    # Keep empty lines as they are
+                    formatted_lines.append(line)
+            
+            # Join lines with <br> tags
+            formatted_stanza = '<br>'.join(formatted_lines)
+            
+            # Check if this stanza contains a section header
+            if 'lyrics-section' in formatted_stanza or 'lyrics-chorus' in formatted_stanza:
+                # Don't add extra wrapping for section headers
+                formatted_stanzas.append(formatted_stanza)
+            else:
+                # Regular stanza - wrap in stanza div
+                formatted_stanzas.append(f'<div class="lyrics-stanza">{formatted_stanza}</div>')
+    
+    # Join stanzas
+    formatted_lyrics = ''.join(formatted_stanzas)
+    
+    # Wrap in a div with the lyrics class
+    return f'<div class="lyrics">{formatted_lyrics}</div>'
 
 def format_duration(ms):
     """Format milliseconds duration to mm:ss format"""

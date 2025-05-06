@@ -3,12 +3,12 @@ import pandas as pd
 from src.db import get_engine, search_songs, insert_song, check_duplicate_song
 from src.audio import extract_audio_features
 from src.utils import (
-    save_uploaded_file, 
-    get_youtube_thumbnail, 
-    get_album_cover, 
+    save_uploaded_file,
+    get_youtube_thumbnail,
+    get_album_cover,
     get_default_album_art,
-    load_custom_css, 
-    create_radar_chart, 
+    load_custom_css,
+    create_radar_chart,
     format_lyrics,
     format_duration,
     safe_image_load,
@@ -28,12 +28,14 @@ import os
 import re
 
 # --- Theme and Dark Mode Settings ---
+
+
 def initialize_theme_settings():
     # Initialize theme settings in session state if not already present
     if 'theme' not in st.session_state:
         # Default to light mode
         st.session_state.theme = "light"
-    
+
     # Custom CSS for dark/light mode
     if st.session_state.theme == "dark":
         dark_mode_css = """
@@ -42,7 +44,7 @@ def initialize_theme_settings():
             background-color: #121212;
             color: #f1f1f1;
         }
-        
+
         .song-card {
             background-color: #1e1e1e;
             border: 1px solid #333;
@@ -51,53 +53,53 @@ def initialize_theme_settings():
             margin-bottom: 20px;
             box-shadow: 0 4px 8px rgba(0, 0, 0, 0.5);
         }
-        
+
         .stTabs [data-baseweb="tab-list"] {
             background-color: #1e1e1e;
             border-radius: 8px;
         }
-        
+
         .stTabs [data-baseweb="tab"] {
             color: #ccc;
         }
-        
+
         .stTabs [aria-selected="true"] {
             background-color: #2e2e2e !important;
             color: #fff !important;
         }
-        
+
         .stButton button {
             background-color: #333;
             color: white;
             border: 1px solid #444;
         }
-        
+
         .stButton button:hover {
             background-color: #444;
             border-color: #555;
         }
-        
+
         .stTextInput input, .stTextArea textarea, .stNumberInput input {
             background-color: #252525;
             color: #eee;
             border-color: #444;
         }
-        
+
         .stSelectbox [data-baseweb="select"] {
             background-color: #252525;
         }
-        
+
         .stSelectbox [data-baseweb="select"] > div {
             background-color: #252525;
             color: #eee;
         }
-        
+
         .similarity-score {
             color: #4CAF50;
             font-size: 0.85em;
             margin-left: 8px;
         }
-        
+
         /* About Section Styling */
         .about-section {
             background-color: #1e1e1e;
@@ -112,7 +114,7 @@ def initialize_theme_settings():
             z-index: 1000;
             overflow-y: auto;
         }
-        
+
         .close-btn {
             position: absolute;
             top: 10px;
@@ -135,43 +137,43 @@ def initialize_theme_settings():
             box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
             transition: transform 0.2s ease-in-out;
         }
-        
+
         .song-card:hover {
             transform: translateY(-3px);
         }
-        
+
         .stTabs [data-baseweb="tab-list"] {
             background-color: #f8f9fa;
             border-radius: 8px;
             padding: 5px;
         }
-        
+
         .stTabs [data-baseweb="tab"] {
             border-radius: 5px;
             font-weight: 500;
         }
-        
+
         .stTabs [aria-selected="true"] {
             background-color: #e6f3ff !important;
             color: #1e88e5 !important;
         }
-        
+
         .stButton button {
             border-radius: 6px;
             font-weight: 500;
         }
-        
+
         .similarity-score {
             color: #2e7d32;
             font-size: 0.85em;
             margin-left: 8px;
         }
-        
+
         .album-cover {
             border-radius: 8px;
             box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
         }
-        
+
         /* About Section Styling */
         .about-section {
             background-color: #ffffff;
@@ -186,7 +188,7 @@ def initialize_theme_settings():
             z-index: 1000;
             overflow-y: auto;
         }
-        
+
         .close-btn {
             position: absolute;
             top: 10px;
@@ -195,7 +197,7 @@ def initialize_theme_settings():
             color: #666;
             font-size: 24px;
         }
-        
+
         /* Header styling */
         .header-container {
             display: flex;
@@ -204,12 +206,12 @@ def initialize_theme_settings():
             margin-bottom: 20px;
             padding: 10px 0;
         }
-        
+
         .header-title {
             display: flex;
             align-items: center;
         }
-        
+
         .header-actions {
             display: flex;
             gap: 10px;
@@ -217,12 +219,14 @@ def initialize_theme_settings():
         """
         st.markdown(f"<style>{light_mode_css}</style>", unsafe_allow_html=True)
 
+
 def toggle_theme():
     """Toggle between light and dark mode"""
     if st.session_state.theme == "light":
         st.session_state.theme = "dark"
     else:
         st.session_state.theme = "light"
+
 
 def show_about_section():
     """Display the About Us section"""
@@ -243,17 +247,22 @@ def show_about_section():
             </ul>
             
             <h3>The Team</h3>
-            <p>Our team consists of passionate music lovers, data scientists, and developers who believe in the power of technology to connect people with the music they love.</p>
+            <p>DSPipeXP was created by a team of three data science students:</p>
+            <ul>
+                <li><strong>Akshit S Bansal</strong> - Lead Developer</li>
+                <li><strong>Kriti Chaturvedi</strong> - Data Scientist</li>
+                <li><strong>Hussain Haidary</strong> - Machine Learning Engineer</li>
+            </ul>
+            
+            <h3>Learn More</h3>
+            <p>For more information about our project:</p>
+            <ul>
+                <li><a href="https://github.com/Heisenberg-Vader/DSPipeXP" target="_blank">GitHub Repository</a></li>
+                <li><a href="https://medium.com/@heisenberg-vader/dspipexp" target="_blank">Medium Article</a></li>
+            </ul>
             
             <h3>Our Mission</h3>
-            <p>To create the most personalized music discovery experience by combining the science of sound with the art of musical taste.</p>
-            
-            <h3>Contact Us</h3>
-            <p>Email: info@dspipexp.com<br>
-            Twitter: @DSPipeXP<br>
-            GitHub: github.com/dspipexp</p>
-            
-            <p>© 2025 DSPipeXP Music Recommendation</p>
+            <p>To create a personalized music discovery experience by combining the science of sound with the art of musical taste, offering recommendations based on audio features, lyrics content, and emotional tones.</p>
         </div>
         
         <script>
@@ -269,9 +278,10 @@ def show_about_section():
         unsafe_allow_html=True
     )
 
+
 # Set up page configuration
 st.set_page_config(
-    page_title="DSPipeXP Music Recommendation", 
+    page_title="DSPipeXP Music Recommendation",
     layout="wide",
     initial_sidebar_state="expanded"
 )
@@ -283,6 +293,8 @@ initialize_theme_settings()
 load_custom_css()
 
 # --- Helper Functions ---
+
+
 def show_song_card(song, similarity=None, with_recommendations=False):
     """Display a song in a modern card layout with album art"""
     import json
@@ -291,37 +303,49 @@ def show_song_card(song, similarity=None, with_recommendations=False):
     if isinstance(audio_features, str):
         try:
             audio_features = json.loads(audio_features)
-        except:
+        except BaseException:
             audio_features = {}
 
     sentiment = song.get('sentiment_features', None)
     if isinstance(sentiment, str):
         try:
             sentiment = json.loads(sentiment)
-        except:
+        except BaseException:
             sentiment = None
 
     # Card container
     with st.container():
         st.markdown('<div class="song-card">', unsafe_allow_html=True)
-        
+
         col1, col2 = st.columns([1, 3])
-        img_url = get_youtube_thumbnail(song['youtube_url']) if song.get('youtube_url') else None
-        img_url = img_url or get_album_cover(song.get('track_name', ''), song.get('track_artist', ''))
-        
+        img_url = get_youtube_thumbnail(
+            song['youtube_url']) if song.get('youtube_url') else None
+        img_url = img_url or get_album_cover(
+            song.get(
+                'track_name', ''), song.get(
+                'track_artist', ''))
+
         with col1:
             safe_image_load(img_url, use_class="album-cover")
-        
+
         with col2:
             # Title and artist
             if similarity is not None:
+                # Add color-coded similarity score based on value
+                score_color = "#ff0000"  # Red for low scores
+                if similarity >= 0.7:
+                    score_color = "#00aa00"  # Green for high scores
+                elif similarity >= 0.4:
+                    score_color = "#aaaa00"  # Yellow for medium scores
+
                 st.markdown(f"""
-                    ### {song.get('track_name', 'Unknown Track')} 
-                    <span class="similarity-score">{similarity:.2f} match</span>
+                    ### {song.get('track_name', 'Unknown Track')}
+                    <span class="similarity-score" style="color: {score_color};">{similarity:.2f} match</span>
                 """, unsafe_allow_html=True)
             else:
                 st.markdown(f"### {song.get('track_name', 'Unknown Track')}")
-            st.markdown(f"**Artist:** {song.get('track_artist', 'Unknown Artist')}")
+            st.markdown(
+                f"**Artist:** {song.get('track_artist', 'Unknown Artist')}")
 
             # Metadata
             album = song.get('track_album_name', 'Unknown Album')
@@ -337,27 +361,57 @@ def show_song_card(song, similarity=None, with_recommendations=False):
                 st.link_button("▶️ Play on YouTube", song['youtube_url'])
 
             if not with_recommendations and 'id' in song:
-                if st.button("🔍 Get Recommendations", key=f"rec_btn_{song['id']}"):
-                    st.session_state[f'show_recs_for_{song["id"]}'] = True
-                    st.rerun()
+                # Initialize the state if not present
+                rec_key = f'show_recs_for_{song["id"]}'
+                if rec_key not in st.session_state:
+                    st.session_state[rec_key] = False
+
+                if st.button("🔍 Get Recommendations",
+                             key=f"rec_btn_{song['id']}"):
+                    st.session_state[rec_key] = True
 
             if audio_features:
-                if st.button("📊 Audio Profile", key=f"audio_viz_{song.get('id', 'temp')}"):
-                    st.session_state[f"show_viz_for_{song.get('id', 'temp')}"] = True
-                    st.rerun()
+                # Initialize visualization state if not present
+                viz_key = f"show_viz_for_{song.get('id', 'temp')}"
+                if viz_key not in st.session_state:
+                    st.session_state[viz_key] = False
 
-        
-        # Expandable Lyrics
+                if st.button("📊 Audio Profile",
+                             key=f"audio_viz_{song.get('id', 'temp')}"):
+                    st.session_state[viz_key] = True
+
+        # Expandable Lyrics - only use expander when not in a recommendation
         if song.get('lyrics'):
-            with st.expander("📝 View Lyrics"):
-                st.markdown(format_lyrics(song['lyrics']), unsafe_allow_html=True)
+            if with_recommendations:
+                # For recommendations, use a simple toggle button instead of
+                # expander
+                lyrics_key = f"show_lyrics_{song.get('id', 'temp')}"
+                if lyrics_key not in st.session_state:
+                    st.session_state[lyrics_key] = False
+
+                if st.button("📝 View Lyrics", key=f"lyrics_btn_{song.get('id', 'temp')}"):
+                    st.session_state[lyrics_key] = not st.session_state.get(lyrics_key, False)
+
+                # Show lyrics if toggled on
+                if st.session_state.get(lyrics_key, False):
+                    st.markdown(format_lyrics(song['lyrics']), unsafe_allow_html=True)
+            else:
+                # For top-level songs, use expander as before
+                with st.expander("📝 View Lyrics"):
+                    st.markdown(
+                        format_lyrics(
+                            song['lyrics']),
+                        unsafe_allow_html=True)
 
         # Audio Visualization
         viz_key = f'show_viz_for_{song.get("id", "temp")}'
         if st.session_state.get(viz_key):
-            with st.expander("Audio Feature Visualization", expanded=True):
-                st.plotly_chart(create_radar_chart(audio_features), use_container_width=True)
-                st.markdown("""
+            # Use a dedicated section instead of expander
+            st.markdown("### Audio Feature Visualization")
+            st.plotly_chart(
+                create_radar_chart(audio_features),
+                use_container_width=True)
+            st.write("""
                 This radar chart shows the audio characteristics of the song. Higher values mean stronger presence of that trait:
                 - **Danceability**: How suitable the track is for dancing
                 - **Energy**: Intensity and activity level
@@ -367,89 +421,436 @@ def show_song_card(song, similarity=None, with_recommendations=False):
                 - **Speechiness**: Presence of spoken words
                 - **Valence**: Musical positiveness/happiness
                 """)
-                if st.button("Hide Visualization", key=f"hide_viz_{song.get('id', 'temp')}"):
+            if st.button("Hide Visualization",
+                         key=f"hide_viz_{song.get('id', 'temp')}"):
                     st.session_state[viz_key] = False
-                    st.rerun()
 
         # Recommendations
         rec_key = f'show_recs_for_{song.get("id")}'
         if st.session_state.get(rec_key) and not with_recommendations:
-            with st.expander("Similar Songs", expanded=True):
+            # Use a dedicated section instead of expander
+            st.markdown("### Similar Songs")
+            with st.container():  # Use container to prevent nesting issues
                 with st.spinner("Finding similar songs..."):
                     show_recommendations_for_song(song.get('id'), k=5)
-                if st.button("Hide Recommendations", key=f"hide_recs_{song.get('id')}"):
+            if st.button("Hide Recommendations",
+                         key=f"hide_recs_{song.get('id')}"):
                     st.session_state[rec_key] = False
-                    st.rerun()
 
         # Explanation for recommendation
-        if similarity is not None and all(k in song for k in ['audio_score', 'lyrics_score', 'sentiment_score']):
-            with st.expander("Why this recommendation?"):
+        if similarity is not None and all(
+                k in song for k in ['audio_score', 'lyrics_score', 'sentiment_score']):
+            # Show explanation with button toggle when in a recommendation card
+            explain_key = f"show_explain_{song.get('id', 'temp')}"
+            if explain_key not in st.session_state:
+                st.session_state[explain_key] = False
+
+            if st.button(
+    "ℹ️ Why this recommendation?",
+    key=f"explain_btn_{
+        song.get(
+            'id',
+             'temp')}"):
+                st.session_state[explain_key] = not st.session_state.get(
+                    explain_key, False)
+
+            # Show explanation if toggled on
+            if st.session_state.get(explain_key, False):
+                with st.container():
+                    # Detailed similarity visualization
+                    components = [
+                        {"name": "Sound Profile",
+                         "score": song['audio_score'],
+                            "weight": 0.7},
+                        {"name": "Lyrics",
+                         "score": song['lyrics_score'],
+                            "weight": 0.2},
+                        {"name": "Emotional Tone",
+                         "score": song['sentiment_score'],
+                            "weight": 0.1}
+                    ]
+
+                    # Display detailed scores
+                    st.markdown("#### Similarity Components")
+                    for comp in components:
+                        # Calculate weighted score for context
+                        weighted = comp["score"] * comp["weight"]
+                        # Color-code based on component score
+                        color = "#ff0000"  # Red for low scores
+                        if comp["score"] >= 0.7:
+                            color = "#00aa00"  # Green for high scores
+                        elif comp["score"] >= 0.4:
+                            color = "#aaaa00"  # Yellow for medium scores
+
+                        st.markdown(f"""
+                        **{comp['name']}**: <span style="color:{color};">{comp['score']:.2f}</span>
+                        (contributes {weighted:.2f} to total score)
+                        """, unsafe_allow_html=True)
+
+                    # Explanation text
                 st.info(explain_recommendation(
                     song['audio_score'],
                     song['lyrics_score'],
                     song['sentiment_score']
                 ))
 
-                st.markdown("### Component Similarity Scores")
-                st.metric("Sound Profile", f"{song['audio_score']:.2f}")
-                st.metric("Lyrics", f"{song['lyrics_score']:.2f}")
-                st.metric("Emotional Tone", f"{song['sentiment_score']:.2f}")
-
         st.markdown('</div>', unsafe_allow_html=True)
 
-    
+
 def show_recommendations_for_song(song_id, k=5):
     """Show recommendations for a song with detailed component scores"""
     engine = get_engine()
-    # Get recommendations using the hybrid engine
-    recs = get_similar_songs(engine, song_id, k=k, 
-                            audio_weight=0.7, lyrics_weight=0.2, sentiment_weight=0.1)
-                            
+
+    # Initialize loading placeholder variable to avoid UnboundLocalError
+    loading_placeholder = st.empty()
+
+    # First, get song name for context - define this outside other blocks
+    song_name = "this song"
+    try:
+        with engine.connect() as conn:
+            song_row = conn.execute(
+                text("SELECT track_name, track_artist FROM songs WHERE id = :id"), 
+                {"id": song_id}).fetchone()
+            if song_row:
+                song_name = f"'{song_row.track_name}' by {song_row.track_artist}"
+    except Exception as e:
+        print(f"Error getting song name: {e}")
+        # Just use the default name
+
+    # Add a caching key to prevent duplicate processing
+    cache_key = f"song_recs_{song_id}_{k}"
+
+    # Add a processing flag to prevent double loading
+    processing_key = f"processing_recs_{song_id}_{k}"
+
+    # Add keys for progressive refinement
+    quality_key = f"quality_recs_{song_id}_{k}"
+    progress_key = f"progress_refinement_{song_id}_{k}"
+
+    # Initialize processing flag if not present
+    if processing_key not in st.session_state:
+        st.session_state[processing_key] = False
+
+    # Initialize progressive refinement flag
+    if progress_key not in st.session_state:
+        st.session_state[progress_key] = {
+            "refining": False,
+            "iteration": 0,
+            "threshold": MIN_COMBINED_SIM if 'MIN_COMBINED_SIM' in globals() else 0.15,
+            "started_at": None,
+            "last_update": None
+        }
+
+    # Check if we already have cached recommendations
+    if cache_key in st.session_state and st.session_state[cache_key]:
+        recs = st.session_state[cache_key]
+
+        # Check if we need to start background refinement
+        if not st.session_state[progress_key]["refining"]:
+            # Start progressive refinement in background
+            st.session_state[progress_key]["refining"] = True
+            st.session_state[progress_key]["started_at"] = time.time()
+            st.session_state[progress_key]["iteration"] = 1
+
+            # Create a placeholder for refinement status
+            if "refinement_status" not in st.session_state:
+                st.session_state.refinement_status = st.empty()
+
+            # Show initial recommendations immediately while starting
+            # background refinement
+            _start_progressive_refinement(song_id, k, engine)
+
+    # Only process if not already processing
+    elif not st.session_state[processing_key]:
+        # Set processing flag to prevent double execution
+        st.session_state[processing_key] = True
+
+        # Add a loading message with timer
+        loading_placeholder = st.empty()
+
+        start_time = time.time()
+        loading_message_shown = False
+
+        # Get recommendations using the hybrid engine
+        with st.spinner("Finding similar songs..."):
+            # Show loading warning if it takes more than 3 seconds
+            while True:
+                if time.time() - start_time > 3 and not loading_message_shown:
+                    loading_placeholder.warning(
+                        "Recommendations are taking longer than usual. Please wait a moment...")
+                    loading_message_shown = True
+
+                # Try to get recommendations
+                try:
+                    recs = get_similar_songs(engine, song_id, k=k,
+                                           audio_weight=0.7, lyrics_weight=0.2, sentiment_weight=0.1)
+
+                    # Cache the recommendations
+                    st.session_state[cache_key] = recs
+
+                    # Set quality metric for first batch
+                    if quality_key not in st.session_state:
+                        if recs and len(recs) > 0:
+                            # Use average similarity as quality metric
+                            avg_sim = sum(rec[3] for rec in recs) / len(recs)
+                            st.session_state[quality_key] = avg_sim
+                        else:
+                            st.session_state[quality_key] = 0.0
+
+                    # Reset processing flag
+                    st.session_state[processing_key] = False
+                    break  # Exit the loop if successful
+                except Exception as e:
+                    # Error handling - wait briefly and try again
+                    print(f"Error retrieving recommendation: {e}")
+                    time.sleep(0.5)
+                    if time.time() - start_time > 15:  # Timeout after 15 seconds
+                        st.error(f"Error retrieving recommendation: {e}")
+                        st.session_state[processing_key] = False
+                        break
+
+    # Clear the loading message
+    loading_placeholder.empty()
+    
+    # Start progressive refinement in background
+    st.session_state[progress_key]["refining"] = True
+    st.session_state[progress_key]["started_at"] = time.time()
+    st.session_state[progress_key]["iteration"] = 1
+    _start_progressive_refinement(song_id, k, engine)
+
     if not recs:
-        st.warning("No recommendations found for this song.")
+        st.warning(
+            f"No recommendations found that are similar enough to {song_name}.")
+        st.info("This could be because the song has unique characteristics or there aren't enough similar songs in the database.")
         return
     
-    st.markdown("### Similar Songs You Might Enjoy")
+    # Show refinement status if in progress
+    if st.session_state[progress_key]["refining"]:
+        # Calculate time since last update
+        last_update = st.session_state[progress_key].get("last_update")
+        if last_update:
+            time_since_update = time.time() - last_update
+            if time_since_update > 10:  # If it's been more than 10 seconds
+                refinement_status = st.container()
+                with refinement_status:
+                    st.info(f"Progressive refinement in progress (iteration {st.session_state[progress_key]['iteration']}). If better results are found, they will replace these automatically.")
+
+    st.markdown(f"### Similar Songs You Might Enjoy")
+    st.markdown(f"Songs similar to {song_name}, sorted by similarity:")
+
+    # Use a status container to show loading progress for each recommendation
+    status_container = st.empty()
+
+    for i, rec in enumerate(recs):
+        status_container.text(
+            f"Loading recommendation {
+                i +
+                1} of {
+                len(recs)}...")
+
+        # Check if we have the component scores
+        if len(rec) >= 7:  # New format with component scores
+            rec_id, rec_name, rec_artist, sim, audio_score, lyrics_score, sentiment_score = rec
+            has_component_scores = True
+        else:  # Old format without component scores
+            rec_id, rec_name, rec_artist, sim = rec
+            has_component_scores = False
+            # We'll set default scores later if needed
+
+        try:
+            # Fetch full song details
+            with engine.connect() as conn:
+                row = conn.execute(
+                    text("SELECT * FROM songs WHERE id = :id"), {"id": rec_id}).fetchone()
+
+            if row:
+                song = dict(row._mapping)
+                
+                # Fetch YouTube URL if missing
+                youtube_url = song.get('youtube_url')
+                if not youtube_url:
+                    query = f"{rec_name} {rec_artist} official audio"
+                    youtube_url = youtube_search_and_get_url(query)
+                    if youtube_url:
+                        update_song_youtube_url(engine, rec_id, youtube_url)
+                    song['youtube_url'] = youtube_url
+                
+                # Fetch lyrics if missing
+                lyrics = song.get('lyrics')
+                sentiment = song.get('sentiment_features')
+                if not lyrics:
+                    lyrics_result = fetch_lyrics_and_sentiment(rec_name, rec_artist)
+                    lyrics = lyrics_result.get('lyrics')
+                    sentiment = lyrics_result.get('sentiment')
+                    song['lyrics'] = lyrics
+                    song['sentiment_features'] = sentiment
+                
+                # Add component scores from recommendation engine or create reasonable estimates
+                if has_component_scores:
+                    song['audio_score'] = audio_score
+                    song['lyrics_score'] = lyrics_score
+                    song['sentiment_score'] = sentiment_score
+                else:
+                    # Fallback - simulate scores based on overall similarity
+                    song['audio_score'] = sim * 0.8 + 0.1
+                    song['lyrics_score'] = sim * 0.7 + 0.2
+                    song['sentiment_score'] = sim * 0.6 + 0.3
+                
+                # Show recommendation card
+                show_song_card(song, similarity=sim, with_recommendations=True)
+            else:
+                st.warning(f"Could not fetch details for {rec_name} by {rec_artist}")
+        except Exception as e:
+            st.error(f"Error loading recommendation: {e}")
+
+    # Clear the status when done
+    status_container.empty()
+
+def _start_progressive_refinement(song_id, k, engine):
+    """
+    Start progressive refinement of recommendations in the background
+    This will incrementally increase thresholds to find higher quality matches
+    """
+    # Use session state keys
+    cache_key = f"song_recs_{song_id}_{k}"
+    quality_key = f"quality_recs_{song_id}_{k}"
+    progress_key = f"progress_refinement_{song_id}_{k}"
     
-    for rec in recs:
-        rec_id, rec_name, rec_artist, sim = rec
-        # Fetch full song details
-        with engine.connect() as conn:
-            row = conn.execute(text("SELECT * FROM songs WHERE id = :id"), {"id": rec_id}).fetchone()
-        if row:
-            song = dict(row._mapping)
-            
-            # Fetch YouTube URL if missing
-            youtube_url = song.get('youtube_url')
-            if not youtube_url:
-                query = f"{rec_name} {rec_artist} official audio"
-                youtube_url = youtube_search_and_get_url(query)
-                if youtube_url:
-                    update_song_youtube_url(engine, rec_id, youtube_url)
-                song['youtube_url'] = youtube_url
-            
-            # Fetch lyrics if missing
-            lyrics = song.get('lyrics')
-            sentiment = song.get('sentiment_features')
-            if not lyrics:
-                lyrics_result = fetch_lyrics_and_sentiment(rec_name, rec_artist)
-                lyrics = lyrics_result.get('lyrics')
-                sentiment = lyrics_result.get('sentiment')
-                song['lyrics'] = lyrics
-                song['sentiment_features'] = sentiment
-            
-            # Add component scores (actual implementation would require access to internal scores)
-            # Here we're simulating them based on similarity
-            song['audio_score'] = sim * 0.8 + 0.1  # Simulate audio score
-            song['lyrics_score'] = sim * 0.7 + 0.2  # Simulate lyrics score
-            song['sentiment_score'] = sim * 0.6 + 0.3  # Simulate sentiment score
-            
-            # Show recommendation card
-            show_song_card(song, similarity=sim, with_recommendations=True)
-        else:
-            st.warning(f"Could not fetch details for {rec_name} by {rec_artist}")
+    # Get current thresholds from recommender module
+    try:
+        from src.recommender import MIN_AUDIO_SIM, MIN_COMBINED_SIM
+        initial_audio_sim = MIN_AUDIO_SIM
+        initial_combined_sim = MIN_COMBINED_SIM
+    except ImportError:
+        # Default values if can't import
+        initial_audio_sim = 0.15
+        initial_combined_sim = 0.15
+    
+    # Configure number of refinement iterations
+    max_iterations = 3
+    
+    # Ensure the progress key exists in session state with proper values
+    if progress_key not in st.session_state:
+        st.session_state[progress_key] = {
+            "refining": True,
+            "iteration": 1,
+            "threshold": initial_combined_sim,
+            "started_at": time.time(),
+            "last_update": time.time(),
+            "quality": 0.0
+        }
+    
+    # Get current iteration from session state
+    current_iteration = st.session_state[progress_key]["iteration"]
+    
+    if current_iteration > max_iterations:
+        # We've completed all refinement iterations
+        st.session_state[progress_key]["refining"] = False
+        return
+    
+    # Threshold increases for each iteration
+    audio_threshold_increase = 0.05 * current_iteration
+    combined_threshold_increase = 0.05 * current_iteration
+    
+    # Adjusted thresholds for this iteration
+    adjusted_audio_sim = initial_audio_sim + audio_threshold_increase
+    adjusted_combined_sim = initial_combined_sim + combined_threshold_increase
+    
+    # Update the threshold in session state for this iteration
+    st.session_state[progress_key]["threshold"] = adjusted_combined_sim
+    
+    try:
+        # Create a background task for refinement
+        import threading
+        
+        def refinement_task():
+            try:
+                # Check if progress_key exists in session state before proceeding
+                if progress_key not in st.session_state:
+                    print(f"Warning: progress_key {progress_key} not found in session state, initializing it")
+                    # Initialize the progress key with default values
+                    st.session_state[progress_key] = {
+                        "refining": True,
+                        "iteration": 1,
+                        "threshold": adjusted_combined_sim,
+                        "started_at": time.time(),
+                        "last_update": time.time(),
+                        "quality": 0.0
+                    }
+                
+                # Set temporary thresholds in recommender module
+                import src.recommender
+                original_audio_sim = src.recommender.MIN_AUDIO_SIM
+                original_combined_sim = src.recommender.MIN_COMBINED_SIM
+                
+                # Apply stricter thresholds
+                src.recommender.MIN_AUDIO_SIM = adjusted_audio_sim
+                src.recommender.MIN_COMBINED_SIM = adjusted_combined_sim
+                
+                # Get refined recommendations with higher thresholds
+                refined_recs = src.recommender.get_similar_songs(
+                    engine, 
+                    song_id, 
+                    k=k,
+                    audio_weight=0.7, 
+                    lyrics_weight=0.2, 
+                    sentiment_weight=0.1
+                )
+                
+                # Restore original thresholds
+                src.recommender.MIN_AUDIO_SIM = original_audio_sim
+                src.recommender.MIN_COMBINED_SIM = original_combined_sim
+                
+                # Check if the new recommendations are better
+                if refined_recs and len(refined_recs) > 0:
+                    # Calculate average similarity as quality metric
+                    avg_sim = sum(rec[3] for rec in refined_recs) / len(refined_recs)
+                    current_quality = st.session_state.get(quality_key, 0.0)
+                    
+                    # If new recommendations are better, replace the old ones
+                    if avg_sim > current_quality and len(refined_recs) >= k * 0.7:  # At least 70% of requested count
+                        st.session_state[cache_key] = refined_recs
+                        st.session_state[quality_key] = avg_sim
+                        
+                        # Update refinement status - Add check to make sure key exists
+                        if progress_key in st.session_state:
+                            st.session_state[progress_key]["last_update"] = time.time()
+                            st.session_state[progress_key]["threshold"] = adjusted_combined_sim
+                            st.session_state[progress_key]["quality"] = avg_sim
+                
+                # Schedule next iteration - Only if progress_key exists
+                if progress_key in st.session_state:
+                    st.session_state[progress_key]["iteration"] += 1
+                
+                    # Wait before starting next iteration
+                    time.sleep(5)  # Wait 5 seconds between iterations
+                    
+                    # Continue refinement if not at max iterations
+                    if st.session_state[progress_key]["iteration"] <= max_iterations:
+                        _start_progressive_refinement(song_id, k, engine)
+                    else:
+                        st.session_state[progress_key]["refining"] = False
+                else:
+                    print(f"Warning: progress_key {progress_key} not found in session state, stopping refinement")
+                    
+            except Exception as e:
+                print(f"Error in progressive refinement: {e}")
+                # Stop refinement on error
+                if progress_key in st.session_state:
+                    st.session_state[progress_key]["refining"] = False
+        
+        # Start background thread
+        refinement_thread = threading.Thread(target=refinement_task)
+        refinement_thread.daemon = True
+        refinement_thread.start()
+    
+    except Exception as e:
+        print(f"Error starting progressive refinement: {e}")
+        st.session_state[progress_key]["refining"] = False
 
 # --- YouTube Cookies Helper ---
+
+
 def youtube_cookies_sidebar():
     st.session_state.setdefault('show_cookies_sidebar', True)
     st.session_state.setdefault('youtube_cookies_file', None)
@@ -461,8 +862,12 @@ def youtube_cookies_sidebar():
             
             Your cookies are used only for this session and are never stored or shared.
             """)
-            st.markdown("[Learn how to export cookies](https://github.com/yt-dlp/yt-dlp/wiki/How-to-provide-your-own-cookies-to-yt-dlp)")
-            cookies_file = st.file_uploader("Upload YouTube cookies.txt (optional)", type=["txt"], key="sidebar_cookies")
+            st.markdown(
+                "[Learn how to export cookies](https://github.com/yt-dlp/yt-dlp/wiki/How-to-provide-your-own-cookies-to-yt-dlp)")
+            cookies_file = st.file_uploader(
+                "Upload YouTube cookies.txt (optional)",
+                type=["txt"],
+                key="sidebar_cookies")
             if cookies_file:
                 st.session_state['youtube_cookies_file'] = cookies_file
             col1, col2 = st.columns(2)
@@ -474,6 +879,8 @@ def youtube_cookies_sidebar():
                     st.session_state['show_cookies_sidebar'] = False
 
 # --- Header with Dark Mode Toggle and About Us Button ---
+
+
 def render_header():
     # Initialize session state for About section
     if 'show_about' not in st.session_state:
@@ -483,7 +890,7 @@ def render_header():
     st.markdown("""
     <div class="header-container">
         <div class="header-title">
-            <h1>🎵 DSPipeXP Music Recommendation</h1>
+            <h1>🎵Music Recommendation</h1>
         </div>
         <div class="header-actions" id="header-actions">
             <!-- Placeholder for buttons (will be added via Streamlit) -->
@@ -515,6 +922,7 @@ def render_header():
     if st.session_state.show_about:
         show_about_section()
 
+
 # Show sidebar for cookies if needed
 if 'show_cookies_sidebar' not in st.session_state:
     st.session_state['show_cookies_sidebar'] = True
@@ -529,7 +937,6 @@ st.write("Search for songs, get recommendations, or upload your own music!")
 
 # Create centered tabs with better styling
 tab1, tab2, tab3 = st.tabs(["🔍 Search", "⬆️ Upload", "🎥 YouTube"])
-
 
 
 # --- Search Tab Implementation ---
@@ -560,10 +967,13 @@ def render_search_tab(tab):
         
         if search_query:
             with st.spinner("Searching database..."):
-                results = search_songs(engine, search_query, limit=search_limit)
+                results = search_songs(
+                    engine, search_query, limit=search_limit)
                 
             if results:
-                st.success(f"Found {len(results)} songs matching '{search_query}'")
+                st.success(
+                    f"Found {
+                        len(results)} songs matching '{search_query}'")
                 
                 # Create a clean results display - either grid or list view
                 view_type = st.radio(
@@ -575,7 +985,8 @@ def render_search_tab(tab):
                 
                 if view_type == "Grid View":
                     # Create a grid of cards (3 per row)
-                    rows = [results[i:i+3] for i in range(0, len(results), 3)]
+                    rows = [results[i:i + 3]
+                            for i in range(0, len(results), 3)]
                     
                     for row in rows:
                         cols = st.columns(3)
@@ -594,26 +1005,31 @@ def render_search_tab(tab):
                                     
                                     # Mini card for grid view
                                     st.markdown(f"### {song['track_name']}")
-                                    st.markdown(f"**Artist:** {song['track_artist']}")
+                                    st.markdown(
+                                        f"**Artist:** {song['track_artist']}")
                                     
                                     # Try to get thumbnail
                                     img_url = None
                                     if song.get('youtube_url'):
-                                        img_url = get_youtube_thumbnail(song['youtube_url'])
+                                        img_url = get_youtube_thumbnail(
+                                            song['youtube_url'])
                                     if not img_url:
-                                        img_url = get_album_cover(song['track_name'], song['track_artist'])
+                                        img_url = get_album_cover(
+                                            song['track_name'], song['track_artist'])
                                     
                                     if img_url:
                                         try:
-                                            st.image(img_url, use_container_width=True)
-                                        except:
+                                            st.image(
+                                                img_url, use_container_width=True)
+                                        except BaseException:
                                             pass
                                     
                                     # Show details button
                                     detail_btn_key = f"detail_grid_{song_id}"
-                                    if st.button("View Details", key=detail_btn_key):
+                                    if st.button("View Details",
+                                                 key=detail_btn_key):
                                         st.session_state['selected_song_id'] = song_id
-                                        st.rerun()
+                                        # No rerun needed - the UI will update on next render
                 
                 else:  # Detailed List
                     for result in results:
@@ -635,8 +1051,10 @@ def render_search_tab(tab):
                                         song['track_name'], 
                                         song['track_artist']
                                     )
-                                    song['lyrics'] = lyrics_result.get('lyrics')
-                                    song['sentiment_features'] = lyrics_result.get('sentiment')
+                                    song['lyrics'] = lyrics_result.get(
+                                        'lyrics')
+                                    song['sentiment_features'] = lyrics_result.get(
+                                        'sentiment')
                             
                             # Display song card
                             show_song_card(song)
@@ -666,14 +1084,16 @@ def render_search_tab(tab):
                         )
                         
                         # Get recommendations
-                        if st.button("Get Recommendations", key=f"main_recs_{selected_id}"):
+                        if st.button("Get Recommendations",
+                                     key=f"main_recs_{selected_id}"):
                             with st.spinner("Finding similar songs..."):
-                                show_recommendations_for_song(selected_id, k=num_recs)
+                                show_recommendations_for_song(
+                                    selected_id, k=num_recs)
                         
                         # Clear selection button
                         if st.button("Back to Search Results"):
                             del st.session_state['selected_song_id']
-                            st.rerun()
+                            # No rerun needed - the UI will update on next render
             
             else:
                 st.info(f"No songs found matching '{search_query}'")
@@ -682,6 +1102,7 @@ def render_search_tab(tab):
                 if st.button("Search YouTube Instead"):
                     st.session_state['youtube_search_query'] = search_query
                     st.session_state['show_youtube_tab'] = True
+                    # This rerun is needed to switch tabs
                     st.rerun()
                 
                 # Suggest related searches
@@ -692,14 +1113,17 @@ def render_search_tab(tab):
                 for i, suggestion in enumerate(suggestions):
                     with suggestion_cols[i]:
                         if st.button(suggestion):
-                            # Set search query and rerun
+                            # Set search query without rerun
                             st.session_state['search_query'] = suggestion
-                            st.rerun()
+                            # No rerun needed - the UI will update on next render
+
 
 # Display search tab
 render_search_tab(tab1)
 
 # --- YouTube Tab Implementation ---
+
+
 def render_youtube_tab(tab):
     with tab:
         st.header("Find Songs from YouTube")
@@ -725,7 +1149,8 @@ def render_youtube_tab(tab):
             # Check if there's a search query from the search tab
             if 'youtube_search_query' in st.session_state:
                 default_query = st.session_state['youtube_search_query']
-                del st.session_state['youtube_search_query']  # Clear it after use
+                # Clear it after use
+                del st.session_state['youtube_search_query']
             else:
                 default_query = ""
                 
@@ -747,154 +1172,331 @@ def render_youtube_tab(tab):
             if youtube_search_query:
                 search_youtube_with_ui(youtube_search_query, max_results)
 
+
 def process_youtube_url_with_ui(youtube_url):
     """Process a YouTube URL with improved UI feedback"""
-    with st.spinner("Getting video information..."):
-        info_dict = None
-        features, error = None, None
-        with yt_dlp.YoutubeDL({'quiet': True}) as ydl:
+    # Initialize session state variables if not present
+    if 'yt_processed_url' not in st.session_state:
+        st.session_state.yt_processed_url = None
+    if 'yt_features' not in st.session_state:
+        st.session_state.yt_features = None
+    if 'yt_info_dict' not in st.session_state:
+        st.session_state.yt_info_dict = None
+    if 'yt_lyrics' not in st.session_state:
+        st.session_state.yt_lyrics = ''
+    if 'yt_sentiment' not in st.session_state:
+        st.session_state.yt_sentiment = None
+    if 'yt_possible_duplicates' not in st.session_state:
+        st.session_state.yt_possible_duplicates = []
+    if 'yt_save_clicked' not in st.session_state:
+        st.session_state.yt_save_clicked = False
+    if 'yt_recommend_clicked' not in st.session_state:
+        st.session_state.yt_recommend_clicked = False
+    if 'yt_saved_song_id' not in st.session_state:
+        st.session_state.yt_saved_song_id = None
+    if 'yt_metadata' not in st.session_state:
+        st.session_state.yt_metadata = {}
+    if 'yt_processing_state' not in st.session_state:
+        st.session_state.yt_processing_state = None
+        
+    # First check if we've already processed this URL to avoid redundant work
+    if st.session_state.yt_processed_url != youtube_url:
+        # Set up progress tracking containers
+        progress_container = st.empty()
+        progress_bar = progress_container.progress(0)
+        status_container = st.empty()
+        status_text = status_container.text("Initializing...")
+        eta_container = st.empty()
+        eta_text = eta_container.text("")
+        
+        def update_progress(progress, speed=None, message=None):
+            """Update the progress UI elements"""
             try:
-                info_dict = ydl.extract_info(youtube_url, download=False)
-            except Exception as e:
-                st.error(f"Failed to get YouTube video info: {e}")
+                progress_bar.progress(float(progress))
+                if message:
+                    status_text.text(message)
+                if speed and speed > 0:
+                    eta_text.text(f"Speed: {speed:.1f} KB/s")
+                
+                # Store progress in session state for resilience
+                st.session_state.yt_processing_state = {
+                    "progress": progress,
+                    "message": message,
+                    "speed": speed
+                }
+            except:
+                # Handle any UI update errors gracefully
+                pass
+        
+        # Reset the session state
+        st.session_state.yt_processed_url = youtube_url
+        st.session_state.yt_features = None
+        st.session_state.yt_info_dict = None
+        st.session_state.yt_lyrics = ''
+        st.session_state.yt_sentiment = None
+        st.session_state.yt_possible_duplicates = []
+        st.session_state.yt_save_clicked = False
+        st.session_state.yt_recommend_clicked = False
+        st.session_state.yt_saved_song_id = None
+        st.session_state.yt_metadata = {}
+
+        # Process the new URL
+        with st.spinner("Processing YouTube URL..."):
+            # Step 1: Process YouTube URL with progress tracking
+            update_progress(0.05, message="Starting YouTube processing...")
+            
+            features_result, error = process_youtube_url(youtube_url, progress_callback=update_progress)
+            
+            if error:
+                status_text.warning(error)
+            
+            if not features_result:
+                progress_container.empty()
+                status_container.error("Failed to extract audio features")
+                eta_container.empty()
                 return
-    
-    if not info_dict:
-        st.error("Could not retrieve information for this YouTube URL")
-        return
-    
+            
+            # Extract the audio features and video info
+            if isinstance(features_result, dict):
+                if 'audio_features' in features_result:
+                    features = features_result['audio_features']
+                    video_info = features_result.get('video_info', {})
+                    st.session_state.yt_info_dict = video_info
+                else:
+                    # Backward compatibility
+                    features = features_result
+                    video_info = {}
+            else:
+                features = features_result
+                video_info = {}
+            
+            st.session_state.yt_features = features
+            
+            # Step 2: Extract and verify metadata
+            update_progress(0.70, message="Extracting metadata...")
+            
+            # Get the title and artist information
+            title = video_info.get('title', 'Unknown title')
+            uploader = video_info.get('uploader', 'Unknown uploader')
+            
+            # Try to get parsed song/artist from video description first
+            track_name = video_info.get('parsed_song', None)
+            track_artist = video_info.get('parsed_artist', None)
+            
+            # If not found in description, extract from title
+            if not track_name or not track_artist:
+                if ' - ' in title:
+                    parsed_artist, parsed_title = title.split(' - ', 1)
+                    track_artist = track_artist or parsed_artist.strip()
+                    track_name = track_name or parsed_title.strip()
+                else:
+                    track_name = track_name or title
+                    track_artist = track_artist or uploader
+            
+            # Step 3: Fetch enhanced metadata from MusicBrainz
+            update_progress(0.75, message="Fetching additional song metadata...")
+            
+            try:
+                from src.metadata import fetch_song_metadata, merge_song_metadata
+                
+                # Fetch detailed metadata
+                enhanced_metadata = fetch_song_metadata(track_name, track_artist)
+                
+                # Merge with YouTube info
+                merged_metadata = merge_song_metadata(video_info, enhanced_metadata)
+                st.session_state.yt_metadata = merged_metadata
+                
+                # Use the enhanced metadata
+                track_name = merged_metadata.get('track_name', track_name)
+                track_artist = merged_metadata.get('track_artist', track_artist)
+            except Exception as e:
+                logger.warning(f"Error fetching enhanced metadata: {e}")
+                # Continue with YouTube-derived metadata
+                st.session_state.yt_metadata = {
+                    'track_name': track_name,
+                    'track_artist': track_artist,
+                    'album': None,
+                    'source': 'youtube'
+                }
+            
+            # Step 4: Fetch lyrics
+            update_progress(0.85, message="Fetching lyrics...")
+        
+            lyrics_result = fetch_lyrics_and_sentiment(track_name, track_artist)
+            st.session_state.yt_lyrics = lyrics_result.get('lyrics', '')
+            st.session_state.yt_sentiment = lyrics_result.get('sentiment', None)
+        
+            # Step 5: Check for duplicates
+            update_progress(0.95, message="Checking for duplicate songs...")
+        
+            engine = get_engine()
+            st.session_state.yt_possible_duplicates = check_duplicate_song(engine, track_name, track_artist, st.session_state.yt_lyrics)
+            
+            # Complete!
+            update_progress(1.0, message="Processing complete!")
+            time.sleep(0.5)  # Brief pause so user can see completion
+            
+            # Clear progress indicators
+            progress_container.empty()
+            status_container.empty()
+            eta_container.empty()
+    else:
+        # If we've already processed this URL, use the cached values
+        features = st.session_state.yt_features
+        video_info = st.session_state.yt_info_dict
+        
+        if not features:
+            st.error("Failed to process the YouTube URL. Please try again.")
+            return
+
     # Show video info with thumbnail
     st.subheader("YouTube Video Information")
-    
+
     # Two-column layout
     col1, col2 = st.columns([1, 2])
-    
+
     with col1:
         # Video thumbnail
-        thumbnail_url = get_youtube_thumbnail(youtube_url)
+        thumbnail_url = video_info.get('thumbnail') if video_info else None
+        if not thumbnail_url:
+            thumbnail_url = get_youtube_thumbnail(youtube_url)
+        
         if thumbnail_url:
             st.image(thumbnail_url, use_container_width=True)
         else:
             st.markdown("No thumbnail available")
-    
+
     with col2:
-        title = info_dict.get('title', 'Unknown title')
-        uploader = info_dict.get('uploader', 'Unknown uploader')
+        # Use metadata if available, otherwise fall back to video_info
+        metadata = st.session_state.yt_metadata
+        track_name = metadata.get('track_name', 'Unknown')
+        track_artist = metadata.get('track_artist', 'Unknown')
+        album = metadata.get('album', 'Unknown')
         
-        # Extract artist and track name from title
-        if ' - ' in title:
-            track_artist, track_name = title.split(' - ', 1)
-        else:
-            track_name = title
-            track_artist = uploader
+        # Display enhanced video info
+        if video_info:
+            st.markdown(f"**Title:** {video_info.get('title', 'Unknown')}")
+            st.markdown(f"**Channel:** {video_info.get('uploader', 'Unknown')}")
+            st.markdown(f"**Duration:** {video_info.get('duration', 0)} seconds")
+            st.markdown(f"**Views:** {video_info.get('view_count', 'Unknown')}")
             
-        # Display video info
-        st.markdown(f"**Title:** {title}")
-        st.markdown(f"**Channel:** {uploader}")
-        st.markdown(f"**Duration:** {info_dict.get('duration', 0)} seconds")
-        
-        # Add a progress indicator for the next steps
-        progress = st.progress(0)
-        st.markdown("### Processing Status")
-        status = st.empty()
-        
-        # Step 1: Download and process audio
-        status.markdown("⏳ Downloading and processing audio...")
-        progress.progress(10)
-        
-        features, error = process_youtube_url(youtube_url)
-        if error:
-            st.warning(error)
-        
-        if not features:
-            st.error("Failed to extract audio features")
-            return
-        
-        # Step 2: Fetch lyrics
-        progress.progress(50)
-        status.markdown("⏳ Fetching lyrics...")
-        
-        lyrics_result = fetch_lyrics_and_sentiment(track_name, track_artist)
-        lyrics = lyrics_result.get('lyrics', '')
-        sentiment = lyrics_result.get('sentiment', None)
-        
-        # Step 3: Check for duplicates
-        progress.progress(80)
-        status.markdown("⏳ Checking for duplicate songs...")
-        
-        engine = get_engine()
-        possible_duplicates = check_duplicate_song(engine, track_name, track_artist, lyrics)
-        
-        # Complete progress
-        progress.progress(100)
-        status.markdown("✅ Processing complete!")
-        time.sleep(0.5)
-        
-        # Remove progress indicators
-        progress.empty()
-        status.empty()
+            # Show upload date in a nicer format if available
+            upload_date = video_info.get('upload_date', '')
+            if upload_date and len(upload_date) == 8:
+                try:
+                    formatted_date = f"{upload_date[0:4]}-{upload_date[4:6]}-{upload_date[6:8]}"
+                    st.markdown(f"**Upload Date:** {formatted_date}")
+                except:
+                    pass
         
         # Show song metadata
         st.subheader("Detected Song Information")
         
-        # Editable metadata with form
-        with st.form("youtube_metadata_form"):
-            edited_track_name = st.text_input("Track Name", value=track_name)
-            edited_track_artist = st.text_input("Artist", value=track_artist)
-            edited_album = st.text_input("Album", value=info_dict.get('album', ''))
-            edited_genre = st.text_input("Genre", value=info_dict.get('genre', ''))
-            edited_lyrics = st.text_area("Lyrics", value=lyrics, height=200)
+        # Show metadata source if available
+        if metadata and metadata.get('source') and metadata['source'] != 'youtube':
+            st.info(f"Enhanced metadata provided by {metadata['source']}")
+
+    # Editable metadata with form - use callback handlers instead of form
+    # submission
+    with st.form("youtube_metadata_form", clear_on_submit=False):
+        edited_track_name = st.text_input(
+            "Track Name", value=track_name, key="yt_track_name")
+        edited_track_artist = st.text_input(
+            "Artist", value=track_artist, key="yt_track_artist")
+        edited_album = st.text_input(
+            "Album", value=metadata.get('album', ''), key="yt_album")
+        edited_genre = st.text_input(
+            "Genre", value=metadata.get('genre', ''), key="yt_genre")
+        edited_lyrics = st.text_area(
+            "Lyrics",
+            value=st.session_state.yt_lyrics,
+            height=200,
+            key="yt_lyrics")
             
             # Audio feature visualization
-            with st.expander("🔊 Audio Feature Visualization"):
-                st.plotly_chart(create_radar_chart(features), use_container_width=True)
+    with st.expander("🔊 Audio Feature Visualization"):
+            st.plotly_chart(create_radar_chart(features),use_container_width=True)
                 
             # Form submission buttons
             col1, col2 = st.columns(2)
             
             with col1:
-                save_button = st.form_submit_button("Save to Database & Get Recommendations")
+                save_button = st.form_submit_button(
+                    "Save to Database & Get Recommendations")
+                if save_button:
+                    st.session_state.yt_save_clicked = True
             
             with col2:
-                recommendations_only = st.form_submit_button("Get Recommendations Only (Don't Save)")
-                
-        # Handle form submissions
-        if save_button:
+                recommendations_only = st.form_submit_button(
+                    "Get Recommendations Only (Don't Save)")
+                if recommendations_only:
+                    st.session_state.yt_recommend_clicked = True
+
+    # Handle form submissions through session state
+    engine = get_engine()
+
+    # Save to database and show recommendations
+    if st.session_state.yt_save_clicked:
+        st.session_state.yt_save_clicked = False  # Reset for next time
+
             # Prepare song data
-            song_data = {
+        song_data = {
                 "track_name": edited_track_name,
                 "track_artist": edited_track_artist,
                 "track_album_name": edited_album,
                 "playlist_genre": edited_genre,
                 "lyrics": edited_lyrics,
                 "audio_features": features,
-                "sentiment_features": sentiment,
+            "sentiment_features": st.session_state.yt_sentiment,
                 "word2vec_features": None,  # These would be computed separately
                 "topic_features": None,     # These would be computed separately
                 "youtube_url": youtube_url,
                 "is_original": False
-            }
+        }
             
             # Save to database
-            with st.spinner("Saving song to database..."):
+        with st.spinner("Saving song to database..."):
+            try:
                 song_id = insert_song(engine, song_data)
-                
-            st.success(f"Song saved with ID {song_id}")
+                st.session_state.yt_saved_song_id = song_id
+                st.success(f"Song saved with ID {song_id}")
             
             # Now get recommendations
-            st.subheader("Recommendations")
-            with st.spinner("Finding similar songs..."):
-                show_recommendations_for_song(song_id, k=5)
+                st.subheader("Recommendations")
+                with st.spinner("Finding similar songs..."):
+                    show_recommendations_for_song(song_id, k=5)
+            except Exception as e:
+                st.error(f"Error saving song to database: {e}")
                 
-        elif recommendations_only:
             # Just get recommendations without saving
-            st.subheader("Recommendations")
+    elif st.session_state.yt_recommend_clicked:
+        st.session_state.yt_recommend_clicked = False  # Reset for next time
+
+        st.subheader("Recommendations")
             
             # Use the features directly (not from DB)
-            with st.spinner("Finding similar songs..."):
-                from src.recommender import get_similar_songs_for_features
-                # Use the hybrid approach with lyrics and sentiment
-                recs = get_similar_songs_for_features(
+        with st.spinner("Finding similar songs..."):
+            from src.recommender import get_similar_songs_for_features
+
+            # Add a unique session state key to prevent duplicate processing
+            rec_key = f"yt_recs_{hash(str(features))}"
+
+            # Check if we already have recommendations cached
+            if rec_key in st.session_state and st.session_state[rec_key]:
+                # Use cached recommendations
+                recs = st.session_state[rec_key]
+                st.success(
+                    f"Found {
+                        len(recs)} songs with similar sound profile")
+            else:
+                # Check if we have lyrics and sentiment data to use
+                use_lyrics = bool(edited_lyrics and edited_lyrics.strip())
+                use_sentiment = bool(st.session_state.yt_sentiment)
+
+                if use_lyrics:
+                    st.info(
+                        "Using audio features, lyrics, and sentiment for better matching with enhanced YouTube-specific similarity calculations")
+                    recs = get_similar_songs_for_features(
                     engine, 
                     features, 
                     k=5,
@@ -902,36 +1504,81 @@ def process_youtube_url_with_ui(youtube_url):
                     lyrics_weight=0.2, 
                     sentiment_weight=0.1, 
                     lyrics=edited_lyrics,
-                    sentiment=sentiment
-                )
-                
+                        sentiment=st.session_state.yt_sentiment
+                    )
+                else:
+                    st.info(
+                        "Couldn't find lyrics. Using audio-only matching with lower threshold.")
+                    # Note: We're using the lower threshold we set in
+                    # recommender.py (0.15)
+                    recs = get_similar_songs_for_features(engine,features,k=5,audio_weight=1.0,lyrics_weight=0.0,sentiment_weight=0.0)  
+
+                # Cache the recommendations
+                st.session_state[rec_key] = recs
+
                 if not recs:
                     st.warning("No similar songs found")
-                    return
+                else:
+                    st.success(
+                        f"Found {
+                            len(recs)} songs with similar sound profile")
+
+            if recs:
+                # Display loading progress - use one single progress area
+                progress_text = st.empty()
+
+                # Process each recommendation
+                for i, rec in enumerate(recs):
+                    progress_text.text(
+                        f"Loading recommendation {
+                            i +
+                            1} of {
+                            len(recs)}...")
                     
-                for rec in recs:
-                    rec_id, rec_name, rec_artist, sim = rec
+                    # Handle both old and new recommendation formats
+                    if len(rec) >= 7:  # New format with component scores
+                        rec_id, rec_name, rec_artist, sim, audio_score, lyrics_score, sentiment_score = rec
+                    else:  # Old format for backward compatibility
+                        rec_id, rec_name, rec_artist, sim = rec
+                        audio_score = sim
+                        lyrics_score = 0.0
+                        sentiment_score = 0.0
+
+                    try:
                     # Fetch full song details
-                    with engine.connect() as conn:
-                        row = conn.execute(text("SELECT * FROM songs WHERE id = :id"), {"id": rec_id}).fetchone()
+                        with engine.connect() as conn:
+                            row = conn.execute(
+                                text("SELECT * FROM songs WHERE id = :id"), {"id": rec_id}).fetchone()
                     
-                    if row:
-                        song = dict(row._mapping)
-                        # Add component scores (simulated)
-                        song['audio_score'] = sim * 0.8 + 0.1
-                        song['lyrics_score'] = sim * 0.7 + 0.2
-                        song['sentiment_score'] = sim * 0.6 + 0.3
+                        if row:
+                            song = dict(row._mapping)
+
+                            # Set component scores from the actual returned values
+                            song['audio_score'] = audio_score
+                            song['lyrics_score'] = lyrics_score
+                            song['sentiment_score'] = sentiment_score
+
                         # Show recommendation card
-                        show_song_card(song, similarity=sim, with_recommendations=True)
+                            show_song_card(
+                                song, similarity=sim, with_recommendations=False)
+                        else:
+                            st.warning(
+                                f"Could not fetch details for {rec_name} by {rec_artist}")
+                    except Exception as e:
+                        st.error(f"Error retrieving recommendation: {e}")
+
+                # Clear progress indicator
+                progress_text.empty()
         
         # Display duplicates if any were found
-        if possible_duplicates:
-            st.subheader("Possible Duplicate Songs")
+    if hasattr(st.session_state,
+               'yt_possible_duplicates') and st.session_state.yt_possible_duplicates:
+        with st.expander("Possible Duplicate Songs", expanded=False):
             st.markdown("We found songs that might be duplicates of this one:")
             
-            for i, dup in enumerate(possible_duplicates):
+            for i, dup in enumerate(st.session_state.yt_possible_duplicates):
                 with st.container():
-                    st.markdown(f"### Possible Match #{i+1}")
+                    st.markdown(f"### Possible Match #{i + 1}")
                     
                     # Metrics for similarity scores
                     col1, col2 = st.columns(2)
@@ -948,18 +1595,36 @@ def process_youtube_url_with_ui(youtube_url):
                             st.metric("Lyrics Similarity", "N/A")
                     
                     # Fetch the duplicate song details
-                    with engine.connect() as conn:
-                        row = conn.execute(text("SELECT * FROM songs WHERE id = :id"), {"id": dup['id']}).fetchone()
+                    try:
+                        with engine.connect() as conn:
+                            row = conn.execute(
+                                text("SELECT * FROM songs WHERE id = :id"), {"id": dup['id']}).fetchone()
                     
-                    if row:
-                        song = dict(row._mapping)
+                        if row:
+                            song = dict(row._mapping)
                         # Show song card
-                        show_song_card(song)
+                            show_song_card(song)
                     
                     # View recommendations button
-                    if st.button(f"View Recommendations for This Song", key=f"dup_recs_{dup['id']}"):
-                        with st.spinner("Finding similar songs..."):
-                            show_recommendations_for_song(dup['id'], k=5)
+                            dup_rec_key = f"dup_recs_{dup['id']}"
+                            if dup_rec_key not in st.session_state:
+                                st.session_state[dup_rec_key] = False
+
+                            if st.button(
+                                    f"View Recommendations for This Song", key=f"dup_rec_btn_{dup['id']}"):
+                                st.session_state[dup_rec_key] = True
+
+                            if st.session_state[dup_rec_key]:
+                                with st.spinner("Finding similar songs..."):
+                                    show_recommendations_for_song(
+                                        dup['id'], k=5)
+
+                                if st.button(f"Hide Recommendations",
+                                             key=f"hide_dup_recs_{dup['id']}"):
+                                    st.session_state[dup_rec_key] = False
+                    except Exception as e:
+                        st.error(f"Error loading duplicate song: {e}")
+
 
 def search_youtube_with_ui(query, max_results=5):
     """Search YouTube with improved UI"""
@@ -973,7 +1638,7 @@ def search_youtube_with_ui(query, max_results=5):
     st.success(f"Found {len(results)} videos on YouTube")
     
     # Display results in a grid - 2 videos per row
-    rows = [results[i:i+2] for i in range(0, len(results), 2)]
+    rows = [results[i:i + 2] for i in range(0, len(results), 2)]
     
     for row_idx, row in enumerate(rows):
         cols = st.columns(2)
@@ -1006,12 +1671,186 @@ def search_youtube_with_ui(query, max_results=5):
                 with video_info_cols[1]:
                     st.markdown(f"[Watch on YouTube]({video['url']})")
                 
-                # Process button
-                btn_key = f"process_yt_{row_idx}_{col_idx}"
-                if st.button("Process This Song", key=btn_key):
-                    # Store the selection and refresh
-                    st.session_state['selected_youtube_url'] = video['url']
-                    st.rerun()
+                # Process buttons
+                action_cols = st.columns(2)
+
+                with action_cols[0]:
+                    process_btn_key = f"process_yt_{row_idx}_{col_idx}"
+                    if st.button("Process This Song", key=process_btn_key):
+                        # Store the selection in session state without forcing a rerun
+                        st.session_state['selected_youtube_url'] = video['url']
+                        # Don't rerun here - the main loop will detect this change
+
+                with action_cols[1]:
+                    recommend_btn_key = f"recommend_yt_{row_idx}_{col_idx}"
+                    if st.button("Get Recommendations", key=recommend_btn_key):
+                        # Use session state to keep track of which video to
+                        # recommend
+                        st.session_state[f'recommend_for_url_{row_idx}_{col_idx}'] = video['url']
+
+                # Show recommendations if the button was clicked
+                if f'recommend_for_url_{row_idx}_{col_idx}' in st.session_state:
+                    url = st.session_state[f'recommend_for_url_{row_idx}_{col_idx}']
+                    with st.spinner("Processing video to find recommendations..."):
+                        # Process the video without saving to get features
+                        features_result, error = process_youtube_url(url)
+                        if error:
+                            st.error(f"Error processing video: {error}")
+                        elif not features_result:
+                            st.error("Failed to extract audio features")
+                        else:
+                            # Extract actual features from the result structure
+                            # New structure has metadata separated from audio
+                            # features
+                            if isinstance(
+                                    features_result, dict) and 'audio_features' in features_result:
+                                features = features_result['audio_features']
+                                source = features_result.get(
+                                    'source', 'unknown')
+                                st.info(
+                                    f"Processing audio from source: {source}")
+                            else:
+                                # Backward compatibility for old format
+                                features = features_result
+
+                            # Get recommendations based on audio features only
+                            # (faster)
+                            st.markdown("### Similar Songs")
+                            engine = get_engine()
+                            from src.recommender import get_similar_songs_for_features
+
+                            # Use a try-except block to handle any issues
+                            try:
+                                with st.spinner("Finding similar songs..."):
+                                    # Try to get title and artist for lyrics
+                                    video_title = video.get('title', '')
+                                    video_artist = video.get('channel', '')
+
+                                    # Try to extract artist from title if in
+                                    # format "Artist - Song"
+                                    if ' - ' in video_title:
+                                        parts = video_title.split(' - ', 1)
+                                        video_artist = parts[0].strip()
+                                        video_title = parts[1].strip()
+
+                                    # Try to fetch lyrics
+                                    lyrics_data = None
+                                    with st.spinner("Fetching lyrics..."):
+                                        try:
+                                            lyrics_data = fetch_lyrics_and_sentiment(
+                                                video_title, video_artist)
+                                            if lyrics_data and lyrics_data.get(
+                                                    'lyrics'):
+                                                st.success(
+                                                    f"Found lyrics for '{video_title}' by {video_artist}")
+                                            else:
+                                                st.warning(
+                                                    "Couldn't find lyrics. Using audio-only matching with lower threshold.")
+                                        except Exception as e:
+                                            st.warning(
+                                                f"Error fetching lyrics: {e}")
+
+                                    # Determine if we can use lyrics
+                                    if lyrics_data and lyrics_data.get(
+                                            'lyrics'):
+                                        # Get recommendations with hybrid
+                                        # approach
+                                        st.info(
+                                            "Using audio features, lyrics, and sentiment for better matching with enhanced YouTube-specific similarity calculations")
+                                        recs = get_similar_songs_for_features(
+                                            engine,
+                                            features,
+                                            k=5,
+                                            audio_weight=0.7,
+                                            lyrics_weight=0.2,
+                                            sentiment_weight=0.1,
+                                            lyrics=lyrics_data.get(
+                                                'lyrics', ''),
+                                            sentiment=lyrics_data.get(
+                                                'sentiment')
+                                        )
+                                    else:
+                                        # No lyrics - use audio only with lower
+                                        # threshold
+                                        st.info(
+                                            "Using audio features only with enhanced YouTube-specific similarity measures and reduced threshold (0.15)")
+                                        # Note: We're using the lower threshold
+                                        # we set in recommender.py (0.15)
+                                        recs = get_similar_songs_for_features(
+                                            engine,
+                                            features,
+                                            k=5,
+                                            audio_weight=1.0,
+                                            lyrics_weight=0.0,
+                                            sentiment_weight=0.0
+                                        )
+
+                                    if not recs:
+                                        st.warning(
+                                            "No songs found that are similar enough to this video")
+                                        st.info(
+                                            "This could be because the audio has unique characteristics or there aren't enough similar songs in our database.")
+                                    else:
+                                        st.success(
+                                            f"Found {
+                                                len(recs)} songs with similar sound profile")
+
+                                        # Display loading progress
+                                        progress_text = st.empty()
+
+                                        # Process each recommendation
+                                        for i, rec in enumerate(recs):
+                                            progress_text.text(
+                                                f"Loading recommendation {
+                                                    i +
+                                                    1} of {
+                                                    len(recs)}...")
+                                            
+                                            # Handle both old and new recommendation formats
+                                            if len(rec) >= 7:  # New format with component scores
+                                                rec_id, rec_name, rec_artist, sim, audio_score, lyrics_score, sentiment_score = rec
+                                            else:  # Old format for backward compatibility
+                                                rec_id, rec_name, rec_artist, sim = rec
+                                                audio_score = sim
+                                                lyrics_score = 0.0
+                                                sentiment_score = 0.0
+
+                                            try:
+                                                # Fetch full song details
+                                                with engine.connect() as conn:
+                                                    row = conn.execute(
+                                                        text("SELECT * FROM songs WHERE id = :id"), {"id": rec_id}).fetchone()
+
+                                                if row:
+                                                    song = dict(row._mapping)
+
+                                                    # Set component scores from the actual returned values
+                                                    song['audio_score'] = audio_score
+                                                    song['lyrics_score'] = lyrics_score
+                                                    song['sentiment_score'] = sentiment_score
+
+                                                    # Show recommendation card
+                                                    show_song_card(
+                                                        song, similarity=sim, with_recommendations=False)
+                                                else:
+                                                    st.warning(
+                                                        f"Could not fetch details for {rec_name} by {rec_artist}")
+                                            except Exception as e:
+                                                st.error(
+                                                    f"Error retrieving recommendation: {e}")
+
+                                        # Clear progress indicator
+                                        progress_text.empty()
+
+                                        # If no recommendations were found that
+                                        # meet threshold
+                                        if len(recs) == 0:
+                                            st.warning(
+                                                "No songs were similar enough to recommend")
+                            except Exception as e:
+                                st.error(f"Error finding recommendations: {e}")
+                                st.info(
+                                    "Please try again or select a different video with a clearer audio track")
                 
                 st.markdown('</div>', unsafe_allow_html=True)
     
@@ -1029,10 +1868,13 @@ def search_youtube_with_ui(query, max_results=5):
         # Process the URL
         process_youtube_url_with_ui(url)
 
+
 # Display YouTube tab
 render_youtube_tab(tab3)
 
 # --- Upload Tab Implementation ---
+
+
 def render_upload_tab(tab):
     with tab:
         st.header("Upload Your Own Music")
@@ -1094,7 +1936,9 @@ def render_upload_tab(tab):
             
             # Audio characteristics visualization
             st.markdown("### Audio Characteristics")
-            st.plotly_chart(create_radar_chart(features), use_container_width=True)
+            st.plotly_chart(
+                create_radar_chart(features),
+                use_container_width=True)
             
             # Feature explanation
             with st.expander("What do these features mean?"):
@@ -1116,13 +1960,15 @@ def render_upload_tab(tab):
                 # Try to extract filename as initial track name
                 initial_track_name = os.path.splitext(uploaded_file.name)[0]
                 # Remove numbers and underscores at beginning
-                initial_track_name = re.sub(r'^[\d_\s-]+', '', initial_track_name)
+                initial_track_name = re.sub(
+                    r'^[\d_\s-]+', '', initial_track_name)
                 
                 # Metadata form fields
                 col1, col2 = st.columns(2)
                 
                 with col1:
-                    track_name = st.text_input("Track Name", value=initial_track_name)
+                    track_name = st.text_input(
+                        "Track Name", value=initial_track_name)
                     track_artist = st.text_input("Artist")
                 
                 with col2:
@@ -1133,14 +1979,16 @@ def render_upload_tab(tab):
                 lyrics = st.text_area("Lyrics (optional)", height=200)
                 
                 # Get lyrics button
-                fetch_lyrics = st.checkbox("Try to fetch lyrics automatically", value=True)
+                fetch_lyrics = st.checkbox(
+                    "Try to fetch lyrics automatically", value=True)
                 
                 # Options for recommendations
                 st.markdown("### Recommendations")
                 num_recs = st.slider("Number of Recommendations", 1, 20, 5)
                 
                 # Save options
-                save_to_db = st.checkbox("Save this song to the database", value=True)
+                save_to_db = st.checkbox(
+                    "Save this song to the database", value=True)
                 
                 # Submit buttons
                 submit = st.form_submit_button("Process")
@@ -1152,7 +2000,8 @@ def render_upload_tab(tab):
                 # Try to fetch lyrics if requested and not provided
                 if fetch_lyrics and not lyrics and track_name and track_artist:
                     with st.spinner("Fetching lyrics..."):
-                        lyrics_result = fetch_lyrics_and_sentiment(track_name, track_artist)
+                        lyrics_result = fetch_lyrics_and_sentiment(
+                            track_name, track_artist)
                         if lyrics_result.get('lyrics'):
                             lyrics = lyrics_result.get('lyrics')
                             sentiment = lyrics_result.get('sentiment')
@@ -1168,22 +2017,29 @@ def render_upload_tab(tab):
                 # Check for duplicates
                 if track_name and track_artist:
                     with st.spinner("Checking for duplicate songs..."):
-                        possible_duplicates = check_duplicate_song(engine, track_name, track_artist, lyrics)
+                        possible_duplicates = check_duplicate_song(
+                            engine, track_name, track_artist, lyrics)
                         
                     if possible_duplicates:
-                        st.warning(f"Found {len(possible_duplicates)} possible duplicate(s) in the database")
+                        st.warning(
+                            f"Found {
+                                len(possible_duplicates)} possible duplicate(s) in the database")
                         
                         with st.expander("View Possible Duplicates"):
                             for i, dup in enumerate(possible_duplicates):
-                                st.markdown(f"### Possible Match #{i+1}")
+                                st.markdown(f"### Possible Match #{i + 1}")
                                 
                                 # Similarity scores
                                 cols = st.columns(2)
                                 with cols[0]:
-                                    st.metric("Title Similarity", f"{dup['title_similarity']:.2f}")
+                                    st.metric(
+                                        "Title Similarity", f"{
+                                            dup['title_similarity']: .2f}")
                                 with cols[1]:
                                     if dup['lyrics_similarity'] is not None:
-                                        st.metric("Lyrics Similarity", f"{dup['lyrics_similarity']:.2f}")
+                                        st.metric(
+                                            "Lyrics Similarity", f"{
+                                                dup['lyrics_similarity']: .2f}")
                                     else:
                                         st.metric("Lyrics Similarity", "N/A")
                                 
@@ -1201,14 +2057,17 @@ def render_upload_tab(tab):
                                     
                                     # Recommendations button
                                     dup_key = f"dup_recs_btn_{dup['id']}"
-                                    if st.button("Show Recommendations", key=dup_key):
+                                    if st.button(
+                                            "Show Recommendations", key=dup_key):
                                         with st.spinner("Finding similar songs..."):
-                                            show_recommendations_for_song(dup['id'], k=num_recs)
+                                            show_recommendations_for_song(
+                                                dup['id'], k=num_recs)
                 
                 # Save to database if requested
                 if save_to_db:
                     if not track_name or not track_artist:
-                        st.error("Track name and artist are required to save to the database")
+                        st.error(
+                            "Track name and artist are required to save to the database")
                     else:
                         song_data = {
                             "track_name": track_name,
@@ -1230,16 +2089,20 @@ def render_upload_tab(tab):
                                 st.success(f"Song saved with ID: {song_id}")
                                 
                                 # Get recommendations for the saved song
-                                st.subheader("Recommendations Based on Your Song")
+                                st.subheader(
+                                    "Recommendations Based on Your Song")
                                 with st.spinner("Finding similar songs..."):
-                                    show_recommendations_for_song(song_id, k=num_recs)
+                                    show_recommendations_for_song(
+                                        song_id, k=num_recs)
                                     
                             except Exception as e:
                                 st.error(f"Failed to save song: {e}")
                                 
                                 # Still show recommendations based on features
-                                st.subheader("Recommendations Based on Your Song")
-                                st.info("Finding similar songs based on audio features only (without saving)")
+                                st.subheader(
+                                    "Recommendations Based on Your Song")
+                                st.info(
+                                    "Finding similar songs based on audio features only (without saving)")
                                 
                                 with st.spinner("Finding similar songs..."):
                                     # Fallback to feature-based recommendations
@@ -1262,23 +2125,29 @@ def render_upload_tab(tab):
                                             # Fetch full song details
                                             with engine.connect() as conn:
                                                 row = conn.execute(
-                                                    text("SELECT * FROM songs WHERE id = :id"), 
+                                                    text(
+                                                        "SELECT * FROM songs WHERE id = :id"),
                                                     {"id": rec_id}
                                                 ).fetchone()
                                             
                                             if row:
                                                 song = dict(row._mapping)
-                                                # Add simulated component scores
+                                                # Add simulated component
+                                                # scores
                                                 song['audio_score'] = sim * 0.9
-                                                song['lyrics_score'] = sim * 0.5 if lyrics else 0
-                                                song['sentiment_score'] = sim * 0.3 if sentiment else 0
+                                                song['lyrics_score'] = sim * \
+                                                    0.5 if lyrics else 0
+                                                song['sentiment_score'] = sim * \
+                                                    0.3 if sentiment else 0
                                                 # Show recommendation card
-                                                show_song_card(song, similarity=sim, with_recommendations=True)
+                                                show_song_card(
+                                                    song, similarity=sim, with_recommendations=True)
                 
                 # If not saving but still want recommendations
                 elif not save_to_db:
                     st.subheader("Recommendations Based on Your Song")
-                    st.info("Finding similar songs based on audio features only (without saving)")
+                    st.info(
+                        "Finding similar songs based on audio features only (without saving)")
                     
                     with st.spinner("Finding similar songs..."):
                         # Feature-based recommendations
@@ -1309,10 +2178,14 @@ def render_upload_tab(tab):
                                     song = dict(row._mapping)
                                     # Add simulated component scores
                                     song['audio_score'] = sim * 0.9
-                                    song['lyrics_score'] = sim * 0.5 if lyrics else 0
-                                    song['sentiment_score'] = sim * 0.3 if sentiment else 0
+                                    song['lyrics_score'] = sim * \
+                                        0.5 if lyrics else 0
+                                    song['sentiment_score'] = sim * \
+                                        0.3 if sentiment else 0
                                     # Show recommendation card
-                                    show_song_card(song, similarity=sim, with_recommendations=True)
+                                    show_song_card(
+                                        song, similarity=sim, with_recommendations=True)
+
 
 # Display Upload tab
 render_upload_tab(tab2)
