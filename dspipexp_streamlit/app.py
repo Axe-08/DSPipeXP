@@ -501,7 +501,8 @@ def show_recommendations_for_song(song_id, k=5):
     """Show recommendations for a song with detailed component scores"""
     engine = get_engine()
 
-    # Initialize loading placeholder variable to avoid UnboundLocalError
+    # Initialize variables to avoid UnboundLocalError
+    recs = []
     loading_placeholder = st.empty()
 
     # First, get song name for context - define this outside other blocks
@@ -582,7 +583,7 @@ def show_recommendations_for_song(song_id, k=5):
 
                 # Try to get recommendations
                 try:
-                    recs = get_similar_songs(engine, song_id, k=k,
+                    recs = get_similar_songs(engine, song_id, k=k, 
                                            audio_weight=0.7, lyrics_weight=0.2, sentiment_weight=0.1)
 
                     # Cache the recommendations
@@ -762,8 +763,12 @@ def _start_progressive_refinement(song_id, k, engine):
     try:
         # Create a background task for refinement
         import threading
+        import warnings
         
         def refinement_task():
+            # Suppress missing ScriptRunContext warnings in background thread
+            warnings.filterwarnings('ignore', message='.*missing ScriptRunContext.*')
+            
             try:
                 # Check if progress_key exists in session state before proceeding
                 if progress_key not in st.session_state:
@@ -1245,14 +1250,27 @@ def process_youtube_url_with_ui(youtube_url):
             # Step 1: Process YouTube URL with progress tracking
             update_progress(0.05, message="Starting YouTube processing...")
             
-            features_result, error = process_youtube_url(youtube_url, progress_callback=update_progress)
-            
-            if error:
-                status_text.warning(error)
-            
-            if not features_result:
+            try:
+                features_result, error = process_youtube_url(youtube_url, progress_callback=update_progress)
+                
+                if error:
+                    # Check for specific error messages to provide better user guidance
+                    if "Video unavailable" in error:
+                        status_container.error(f"This YouTube video is unavailable. It may have been removed, set to private, or doesn't exist. Please try another video URL.")
+                        progress_container.empty()
+                        eta_container.empty()
+                        return
+                    else:
+                        status_text.warning(error)
+                
+                if not features_result:
+                    progress_container.empty()
+                    status_container.error("Failed to extract audio features. Please try a different YouTube URL.")
+                    eta_container.empty()
+                    return
+            except Exception as e:
                 progress_container.empty()
-                status_container.error("Failed to extract audio features")
+                status_container.error(f"Error processing YouTube URL: {str(e)}")
                 eta_container.empty()
                 return
             

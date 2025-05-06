@@ -1,0 +1,23 @@
+[theme]
+primaryColor = "#1e88e5"
+backgroundColor = "#f5f5f5"
+secondaryBackgroundColor = "#ffffff"
+textColor = "#262730"
+font = "sans serif"
+
+[server]
+enableCORS = true
+enableXsrfProtection = true
+maxUploadSize = 400
+maxMessageSize = 200
+
+[browser]
+gatherUsageStats = false
+
+[runner]
+magicEnabled = true
+installTracer = false
+fastReruns = false
+
+[logger]
+level = "info"

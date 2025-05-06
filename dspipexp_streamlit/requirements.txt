@@ -16,3 +16,4 @@ lxml
 plotly
 musicbrainzngs
 pylast 
+ffmpeg-python
