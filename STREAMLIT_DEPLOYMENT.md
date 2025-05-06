@@ -48,8 +48,16 @@ This guide provides instructions for deploying the DSPipeXP Music Recommendation
      ```
    - Save your secrets
 
-6. **Reboot your app**:
-   - After adding secrets, reboot your app from the Streamlit Cloud dashboard
+6. **Install ffmpeg** (important for YouTube processing):
+   - In your Streamlit Cloud app settings, go to the "Advanced" section
+   - Add the following packages to install in the "Packages" field:
+     ```
+     ffmpeg
+     ```
+   - This ensures that ffmpeg is installed on the server, which is required for YouTube audio processing
+
+7. **Reboot your app**:
+   - After adding secrets and packages, reboot your app from the Streamlit Cloud dashboard
 
 Your app should now be up and running on Streamlit Cloud! The URL will be something like `https://username-app-name.streamlit.app`
 
@@ -58,6 +66,7 @@ Your app should now be up and running on Streamlit Cloud! The URL will be someth
 - If the app fails to deploy, check your `requirements.txt` file for any missing dependencies
 - If database connections fail, verify your connection details and ensure your database allows connections from Streamlit Cloud
 - If you see API errors, check your API keys and rate limits
+- If YouTube processing fails with "ffmpeg not found" errors, make sure you've added ffmpeg to the packages list in your app's Advanced settings
 
 ## Updating Your App
 

@@ -15,4 +15,5 @@ beautifulsoup4
 lxml
 plotly
 musicbrainzngs
-pylast 
+pylast
+ffmpeg-python 
