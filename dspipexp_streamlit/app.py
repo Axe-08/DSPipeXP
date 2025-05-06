@@ -317,12 +317,7 @@ def show_about_section():
         st.markdown("• **Kriti Chaturvedi** - Data Scientist")
         st.markdown("• **Hussain Haidary** - Machine Learning Engineer")
           
-        # Links section
-        st.subheader("Learn More")
-        st.write("For more information about our project:")
-        st.markdown("[GitHub Repository](https://github.com/Heisenberg-Vader/DSPipeXP)")
-        st.markdown("[Medium Article](https://medium.com/@23ucs625/lars-lyric-aware-recommendation-system-4aac512098b7)")
-        
+    
         # Links section
         st.subheader("Learn More")
         st.write("For more information about our project:")
@@ -1195,9 +1190,9 @@ def render_youtube_tab(tab):
         - IP-based blocking of cloud service providers
         - API quota and rate limits
         
-        **For full YouTube functionality**: We recommend [forking our GitHub repository](https://github.com/Heisenberg-Vader/DSPipeXP) and running the application locally on your computer.
+        **For full YouTube functionality**: We recommend [forking our GitHub repository](https://github.com/Axe-08/DSPipeXP) and running the application locally on your computer.
         
-        [See our installation guide](https://github.com/Heisenberg-Vader/DSPipeXP#installation) for step-by-step instructions.
+        [See our installation guide](https://github.com/Axe-08/DSPipeXP?tab=readme-ov-file#running-locally-for-full-youtube-features) for step-by-step instructions.
         """)
         
         # Create a divider between the warning and the functionality
@@ -1330,7 +1325,7 @@ def process_youtube_url_with_ui(youtube_url):
                     elif "HTTP Error 403" in error or "Forbidden" in error:
                         status_container.error(f"YouTube blocked this request (403 Forbidden). This commonly happens when running in cloud environments.")
                         status_container.markdown("""
-                        **For reliable YouTube access**: We recommend [running the app locally](https://github.com/Heisenberg-Vader/DSPipeXP#installation) on your computer.
+                        **For reliable YouTube access**: We recommend [running the app locally](https://github.com/Axe-08/DSPipeXP?tab=readme-ov-file#running-locally-for-full-youtube-features) on your computer.
                         
                         This avoids the IP-based blocks that cloud deployments often experience.
                         """)
@@ -1742,7 +1737,7 @@ def search_youtube_with_ui(query, max_results=5):
         **Solutions**:
         1. Try again in a few minutes
         2. Try a direct YouTube URL instead
-        3. For reliable access, [run the app locally](https://github.com/Heisenberg-Vader/DSPipeXP#installation)
+        3. For reliable access, [run the app locally](https://github.com/Axe-08/DSPipeXP#installation)
         """)
         return
     
